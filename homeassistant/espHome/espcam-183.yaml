@@ -1,0 +1,132 @@
+# esphome:
+#   name: espcam-183
+#   friendly_name: espCam-183
+
+# esp32:
+#   board: esp32dev
+#   framework:
+#     type: arduino
+
+# # Enable logging
+# logger:
+
+# # Enable Home Assistant API
+# api:
+#   encryption:
+#     key: "isGO6n+zRh6HBgIRc1Ry1WY9XplBffqtLehh3o/nDfk="
+
+# ota:
+#   - platform: esphome
+#     password: "991425d73fd27e2ef863a2dd33734b73"
+
+# wifi:
+#   ssid: !secret wifi_ssid
+#   password: !secret wifi_password
+
+#   # Enable fallback hotspot (captive portal) in case wifi connection fails
+#   ap:
+#     ssid: "Espcam-183 Fallback Hotspot"
+#     password: "LzVwRKGlqsnq"
+
+# captive_portal:
+
+
+esphome:
+  name: espcam-183
+  friendly_name: espCam-183
+
+esp32:
+  board: esp32cam
+  framework:
+    type: arduino
+
+
+esp32_camera:
+  name: esp32cam-TEST-183
+  external_clock:
+    pin: GPIO0
+    frequency: 20MHz
+  i2c_pins:
+    sda: GPIO26
+    scl: GPIO27
+  data_pins: [GPIO5, GPIO18, GPIO19, GPIO21, GPIO36, GPIO39, GPIO34, GPIO35]
+  vsync_pin: GPIO25
+  href_pin: GPIO23
+  pixel_clock_pin: GPIO22
+  power_down_pin: GPIO32
+  max_framerate: 15 fps
+  idle_framerate: 0.2 fps
+  # resolution: 1024x768
+  resolution: 800x600
+  jpeg_quality: 20
+  vertical_flip: False
+  horizontal_mirror: True
+
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "isGO6n+zRh6HBgIRc1Ry1WY9XplBffqtLehh3o/nDfk="
+
+ota:
+  - platform: esphome
+    password: "991425d73fd27e2ef863a2dd33734b73"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  manual_ip:
+    static_ip: 192.168.10.183
+    gateway: 192.168.10.1
+    subnet: 255.255.255.0  
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "EspCam183 Fallback"
+    password: "1234567890"
+
+captive_portal:
+
+web_server:
+  port: 80
+
+esp32_camera_web_server:
+- port: 8080
+  mode: stream
+
+switch:
+  - platform: gpio
+    pin: 4
+    name: "Flash LED"
+    id: flash_led    
+  - platform: gpio
+    pin:
+      number: 2
+      inverted: false
+    name: "builtin LED"
+  - platform: restart
+    name: "ESP32 Camera Restart"
+    
+esp32_touch:
+  setup_mode: false
+
+binary_sensor:
+  - platform: esp32_touch
+    name: "ESP32 Touch 12 pin"
+    pin: GPIO12
+    threshold: 1000
+    on_press:
+      then:
+        - switch.turn_on: flash_led
+    on_release:
+      then:
+        - switch.turn_off: flash_led
+    
+sensor:
+  - platform: wifi_signal
+    name: "EsPCam183 WiFi dbi"
+    update_interval: 63s
+  - platform: uptime
+    name: "ESP32 Camera Uptime Sensor"
