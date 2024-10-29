@@ -8,9 +8,16 @@ mqtt:
 #  password: Stronghapassword1
   topic_prefix: frigate
 
+  
 ffmpeg:
-  hwaccel_args: preset-vaapi
-#   hwaccel_args: preset-intel-qsv-h264
+  hwaccel_args: preset-intel-qsv-h264 #10++gen, mine 20 x 12th Gen Intel(R) Core(TM) i7-12700 (1 Socket)
+#   hwaccel_args: preset-intel-qsv-h265
+#   hwaccel_args: preset-vaapi
+#   global_args:
+#     - -loglevel
+#     - debug
+#   input_args: preset-http-mjpeg-generic 
+  
   
 # https://github.com/fabio-garavini/ESP32-Cam-Frigate/blob/main/frigate.yaml
 # хороший контент на страничке 
@@ -18,56 +25,84 @@ ffmpeg:
 #   cpu0:
 #     type: cpu
 
-# товарищ подкинул конфу для esphome esp32 cam и фригата 
-# https://community.home-assistant.io/t/esp32-cam-esp-home-frigate/524855
+# источник. красавчик!! он почти помог с есп32 камерой через go2rtc https://github.com/AlexxIT/go2rtc/issues/292
+go2rtc:
+  streams:
+    182camera:
+#      - http://192.168.10.183:8080/
+      - http://192.168.10.182
+      - ffmpeg:182camera#video=h264#hardware
+# если не помогло, раскоменти почитай 
+#   log:
+#     exec: trace
+
 cameras:
-  183camera: # <------ Name the camera
-    enabled: true
+  182camera:
     ffmpeg:
       inputs:
-        - path: http://192.168.10.183:8080/ # <----- The stream you want to use for detection
+        - path: rtsp://127.0.0.1:8554/182camera
           roles:
-            - detect
             - record
-      input_args: -avoid_negative_ts make_zero -fflags nobuffer -flags low_delay -strict experimental -fflags +genpts+discardcorrupt -use_wallclock_as_timestamps 1 -c:v mjpeg
-      output_args:
-        record: -f segment -segment_time 10 -segment_format mp4 -reset_timestamps 1 -strftime 1 -c:v libx264 -an
-        rtmp: -c:v libx264 -an -f flv
-    rtmp:
-      enabled: false
     detect:
-      enabled: false # <---- disable detection until you have a working camera feed
-      width: 800
-      height: 600
-      fps: 3
-    objects:
-      track:
-        - person
-        - cup
-        - cell phone
-    record: 
-      enabled: false
+      enabled: False
+    record:
+      enabled: True
       retain:
         days: 3
         mode: motion
-      events:
-        retain:
-          default: 10
-    snapshots:
-      enabled: False
 
-  182camera: # <------ Name the camera
-    enabled: true
-    ffmpeg:
-      inputs:
-        - path: http://192.168.10.182/ # <----- The stream you want to use for detection
-          input_args: preset-rtsp-restream
-          roles:
-            - detect
-    detect:
-      enabled: true # <---- disable detection until you have a working camera feed
-      width: 1280
-      height: 720
-      fps: 3
 
+# товарищ подкинул конфу для esphome esp32 cam и фригата 
+# https://community.home-assistant.io/t/esp32-cam-esp-home-frigate/524855
+#   183camera: # <------ Name the camera
+#     enabled: true
+#     ffmpeg:
+#       inputs:
+#         - path: http://192.168.10.183:8080/ # <----- The stream you want to use for detection
+#           roles:
+#             - detect
+#             - record
+#       input_args: -avoid_negative_ts make_zero -fflags nobuffer -flags low_delay -strict experimental -fflags +genpts+discardcorrupt -use_wallclock_as_timestamps 1 -c:v mjpeg
+#     #   output_args:
+#     #     record: -f segment -segment_time 10 -segment_format mp4 -reset_timestamps 1 -strftime 1 -c:v libx264 -an
+#     #     # rtmp: -c:v libx264 -an -f flv
+#     # rtmp:
+#     #   enabled: false
+#     detect:
+#       enabled: false # <---- disable detection until you have a working camera feed
+#       width: 800
+#       height: 600
+#       fps: 3
+#     objects:
+#       track:
+#         - person
+#         - cup
+#         - cell phone
+#     record: 
+#       enabled: false
+#       retain:
+#         days: 3
+#         mode: motion
+#       events:
+#         retain:
+#           default: 10
+#     snapshots:
+#       enabled: False
+
+
+
+#   182camera: # <------ Name the camera
+#     enabled: true
+#     ffmpeg:
+#       inputs:
+#         - path: http://192.168.10.182/ # <----- The stream you want to use for detection
+#           roles:
+#             - detect
+#     detect:
+#       enabled: true # <---- disable detection until you have a working camera feed
+#       width: 1280
+#       height: 720
+#       fps: 3
+
+# version: 0.14
 version: 0.14

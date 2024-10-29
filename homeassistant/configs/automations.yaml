@@ -1,0 +1,119 @@
+- alias: '[T] HOME ASSISTANT TRIGGER'
+  trigger:
+  - platform: homeassistant
+    event: start
+  action:
+  - service: persistent_notification.create
+    data:
+      message: Home Assistant started
+      title: HA start
+  id: 5a5753fe900d40408dcf4990f6bb86ac
+- alias: '[T] MQTT TRIGGER'
+  trigger:
+  - platform: mqtt
+    topic: test1/test2
+    payload: 'on'
+  action:
+  - service: persistent_notification.create
+    data:
+      title: MQTT месэдж
+      message: получено -on- в топике test1/test2
+  id: c85bd5372cf4418fa3c99ccf7982a668
+- alias: '[T] NUMERIC STATE TRIGGER'
+  trigger:
+  - platform: numeric_state
+    entity_id: input_number.test5
+    above: 70
+    below: 90
+    for:
+      seconds: 3
+  action:
+  - service: persistent_notification.create
+    data:
+      title: NUMERIC STATE месэдж
+      message: 'NUMERIC STATE TRIGER: test5'
+  id: 9664ed857b3b476bbde5547bfb15c9af
+- alias: '[T] STATE TRIGGER'
+  trigger:
+  - platform: state
+    entity_id: input_select.test4
+    from: '1'
+    to: '2'
+  action:
+  - service: persistent_notification.create
+    data:
+      title: STATE месэдж
+      message: 'STATE TRIGER: input_select.test5'
+  id: 591b0094c932415ea5e4ba56f09b024d
+- alias: '[T] TIME TRIGGER'
+  trigger:
+  - platform: time
+    at: '23:15:00'
+  action:
+  - service: persistent_notification.create
+    data_template:
+      title: Time сейчас
+      message: 'TIME TRIGGER. Now: {{ now() }}
+
+        '
+  id: a1079921117e48b68f8db33d8a0e74d7
+- alias: '[T] WEBHOOK TRIGGER'
+  trigger:
+  - platform: webhook
+    webhook_id: some_hook_id
+    allowed_methods:
+    - GET
+    - POST
+    - PUT
+    local_only: true
+  action:
+  - service: persistent_notification.create
+    data:
+      title: WEBHOOK месэдж
+      message: 'получен WEBHOOK: some_hook_id'
+  id: e7c6ef2f0c164f6d8e0fed16aae42a3b
+- id: '1729235828640'
+  alias: '[T] input_number.test5 (70, 90) 3 sec'
+  description: ''
+  triggers:
+  - entity_id: input_number.test5
+    above: 70
+    below: 90
+    for:
+      seconds: 3
+    trigger: numeric_state
+  conditions: []
+  actions:
+  - data:
+      title: NUMERIC STATE месэдж
+      message: 'NUMERIC STATE TRIGER: test5'
+    action: persistent_notification.create
+  mode: single
+- id: '1729263665534'
+  alias: тестовое фото
+  description: 'отправляем фоточку с камеры espcam-183 если прикоснуться к ее проводу '
+  triggers:
+  - type: turned_on
+    device_id: ea66ebceb201be9710cb8eb55a6ea9a4
+    entity_id: b745d5e655939472581ac53046dd6066
+    domain: binary_sensor
+    trigger: device
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 1
+  conditions: []
+  actions:
+  - action: camera.snapshot
+    metadata: {}
+    data:
+      filename: /config/www/last_snap_koridor.jpg
+    target:
+      device_id: ea66ebceb201be9710cb8eb55a6ea9a4
+  - action: telegram_bot.send_photo
+    metadata: {}
+    data:
+      authentication: digest
+      file: /config/www/last_snap_koridor.jpg
+      caption: фото из тестовой камеры espCam-183
+  mode: single

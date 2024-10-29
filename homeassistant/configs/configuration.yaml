@@ -1,0 +1,136 @@
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# баним при 5ти кратном вводе пароля неправильно
+http:
+  ip_ban_enabled: true
+  login_attempts_threshold: 5
+  
+# Example configuration.yaml entry
+logger:
+  default: critical
+  logs:
+    # homeassistant.core: fatal
+    homeassistant.core: warning
+    homeassistant.components.mqtt: warning
+    homeassistant.components.python_script: warning
+    homeassistant.components.python_script.my_new_script.py: debug
+    homeassistant.components.smartthings.light: info
+    custom_components.my_integration: debug
+    aiohttp: error
+    homeassistant.components.glances: fatal
+    glances_api: fatal
+    
+
+# для расширения File size ( знать размер базы) надо расшарить папку 
+# allowlist_external_dirs:
+#     - "/config/home-assistant_v2.db"
+#     - "/config/"
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# Example configuration.yaml entry for the Telegram Bot
+telegram_bot:
+  - platform: polling
+    api_key: "7988411723:AAFopjXKLlyr1gSfiOkV6cbrsTShAE__7rk"
+    allowed_chat_ids:
+      - -1002453471178  # example: 123456789 for the chat_id of a user
+    #   - CHAT_ID_2 # example: -987654321 for the chat_id of a group
+notify:
+  - platform: telegram
+    name: tg_notify
+    chat_id: -1002453471178
+    
+  # It is possible to add multiple notifiers by using another chat_id
+  # the example belows shows an additional notifier which sends messages to the bot which is added to a group
+#   - platform: telegram
+#     name: NOTIFIER_NAME_OF_GROUP
+#     chat_id: CHAT_ID_2
+    
+    
+    
+# switch:
+#   - platform: mqtt
+#     name: "1 MQTT Switch"
+#     command_topic: "test1/test2"
+#     payload_on: "on"
+#     payload_off: "off"
+
+#  modbus 
+modbus:
+  - name: modbus_USB0
+    type: serial
+    port: /dev/ttyUSB0
+    baudrate: 9600
+    bytesize: 8
+    method: rtu
+    # parity: E // из за этой фигни в документации  долго не мог понять почему не работает
+    parity: N
+    stopbits: 1
+    delay: 0
+    message_wait_milliseconds: 30
+    timeout: 5
+    lights:
+      - name: "lightsss"
+        slave: 1 # адрес устроства
+        address: 0 # регистр устройства
+        write_type: coil
+
+
+    # описаны у павла https://psenyukov.ru/%D1%83%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5-%D1%83%D1%81%D1%82%D1%80%D0%BE%D0%B9%D1%81%D1%82%D0%B2%D0%B0%D0%BC%D0%B8-%D1%87%D0%B5%D1%80%D0%B5%D0%B7-%D0%BF%D1%80%D0%BE%D1%82%D0%BE/
+    #switches: 
+    #   - name: "LED_addr1_slave_1"
+    #     slave: 2 # адрес устройства 
+    #     address: 1 # регистр устройства 
+    #     write_type: coil
+    #     command_on: 1
+    #     command_off: 0
+    #     #   - name: "LED_addr0_slave2"
+    # #     address: 0
+    # #     write_type: coil
+    # #   - name: "LED_addr1_slave2"
+    # #     address: 1
+    # #     write_type: coil
+    # sensors:
+    #   - name: "testtest_sensor"
+    #     slave: 1
+    #     address: 0
+    #     input_type: input
+    #     unit_of_measurement: °C
+    #     state_class: measurement
+    #     count: 1
+    #     scale: 0.1
+    #     offset: 0
+    #     precision: 1
+    #     data_type: integer
+    
+
+# эта часть не работает после реконфигурации mqtt     
+# mqtt:
+#   - sensor:
+#     - name: "N1_ Temperature"
+    #       state_topic: "env/n1/airTemp"
+#       unit_of_measurement: "°C"
+#     - name: "N1 Влажность"
+#       state_topic: "env/n1/airHum"
+#       unit_of_measurement: "%"
+#     - name: "N1 CO2"
+#       state_topic: "env/n1/airCO2"
+#       unit_of_measurement: "ppm"
+
+#   - sensor:
+#     - name: "Temperature"
+#       state_topic: "office/sensor1"
+#       suggested_display_precision: 1
+#       unit_of_measurement: "°C"
+#       value_template: "{{ value_json.temperature }}"
+#     - name: "Humidity"
+#       state_topic: "office/sensor1"
+#       unit_of_measurement: "%"
+#       value_template: "{{ value_json.humidity }}"

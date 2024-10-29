@@ -1,0 +1,33 @@
+
+
+ Proxmox 7.xx со стандартными настройками разбиения диска делает есть три раздела GPT-диска 
+/dev/nvmes0n1: 
+ - /dev/nvmes0n1p1 - GrubBIOS; 
+ - /dev/nvmes0n1p2 - EFI диск; 
+ - /dev/nvmes0n1p3 - LVM раздел, Proxmox в нем задает два LVM диска 
+   - /dev/pve/root
+   - /dev/pve/swap
+
+так же создается thinlvm раздел, для гибкой работы с клонами, но если он не нужен, удаляем его https://multeam.ru/blog/147
+команды по удалению thin-lvm
+lvchange -an /dev/pve/data
+lvremove /dev/pve/data
+mount -a
+
+далее расширяем раздел root 
+lvextend -l +100%FREE /dev/pve/root
+resize2fs /dev/pve/root
+если все ок то 
+reboot now
+
+после этого в интерфейсе проксмокс заходим на storage и разрешаем хранить файлы на нашем руте
+
+
+
+команды по работе с диском 
+lsblk -no name,fstype
+df -h
+vgs
+
+добавить новый диск в проксмокс 
+https://multeam.ru/blog/132

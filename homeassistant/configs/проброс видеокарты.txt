@@ -1,0 +1,94 @@
+нужно будет пробросить интегрированную видео карту и интегрированное аудио, они работают вместе 
+вот тут чувак сказал https://youtu.be/Jzzn9U701k8?t=222
+
+консоль проксмокса 
+
+идем по ману 
+
+https://habr.com/ru/articles/794568/
+этот ман аналогичен видео 
+https://www.youtube.com/watch?v=IE0ew8WwxLM
+
+>
+nano /etc/default/grub
+
+меняем строку вот так:
+GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt"
+или вот так:
+GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt pcie_acs_override=downstream,multifunction nofb nomodeset video=vesafb:off,efifb:off"
+
+Ctrl+O Enter Ctrl+X
+ребутаем проксмокс(прежде виртуалки потушить)
+>
+update-grub
+>
+reboot now
+
+*тут скрипт из статьи из статьи смотри если хочешь*
+
+>
+nano /etc/modules 
+добавим:
+vfio
+vfio_iommu_type1
+vfio_pci
+vfio_virqfd
+
+CtrlX, Y, Enter
+
+>
+echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /etc/modprobe.d/iommu_unsafe_interrupts.conf
+>
+echo "options kvm ignore_msrs=1" > /etc/modprobe.d/kvm.conf
+
+>
+echo "blacklist amdgpu" >> /etc/modprobe.d/blacklist.conf
+echo "blacklist radeon" >> /etc/modprobe.d/blacklist.conf
+echo "blacklist nouveau" >> /etc/modprobe.d/blacklist.conf 
+echo "blacklist nvidia" >> /etc/modprobe.d/blacklist.conf
+echo "blacklist nvidiafb" >> /etc/modprobe.d/blacklist.conf
+echo "blacklist nvidia*" >> /etc/modprobe.d/blacklist.conf
+echo "blacklist i915" >> /etc/modprobe.d/blacklist.conf
+
+ищем вендора нашей интегрированной видюхи и аудио
+>
+lspci -v | grep VGA 
+<
+00:02.0 VGA compatible controller: Intel Corporation AlderLake-S GT1 (rev 0c) (prog-if 00 [VGA controller])
+находим нашу видеокарту в списке
+
+>
+lspci -n -s 00:02
+<
+00:02.0 0300: 8086:4680 (rev 0c) # это видеокарта. запомним 
+
+>
+lspci -v | grep Audio
+<
+00:1f.3 Audio device: Intel Corporation Alder Lake-S HD Audio Controller (rev 11)
+
+>
+lspci -n -s 00:1f
+<
+00:1f.0 0601: 8086:7a83 (rev 11)
+00:1f.3 0403: 8086:7ad0 (rev 11) # это аудиокарта, их тоже запоминаем 
+00:1f.4 0c05: 8086:7aa3 (rev 11)
+00:1f.5 0c80: 8086:7aa4 (rev 11)
+00:1f.6 0200: 8086:1a1c (rev 11)
+
+Теперь прописываем найденных вендоров видео и аудио в конф( аккуратно) 
+>
+nano /etc/modprobe.d/vfio.conf
+options vfio-pci ids=8086:4680,8086:7ad0 disable_vga=1
+
+CtrlX, Y, Enter
+
+>
+update-initramfs -u -k all
+>
+reboot now
+
+дальше в интерфейсе виртуалки Hardware - add PCI 
+добавляем 02:00 видеокарту, ставим все галочки 
+===
+profit
