@@ -1,0 +1,29 @@
+HOWTO CHOOSE DEFAULT SOUNDCARD
+https://community.home-assistant.io/t/selecting-default-soundcard/278766/4
+
+
+If anyone still looking for a solution, here is my walkthrough for a generic USB Sound Card (5ch analog + 2ch digital).
+
+    Check if the hardware is properly initialized: it should be visible under hardwares menu (eg. 1-1.2 - ID_MODEL: USB_Sound_Device).
+
+ha audio info 
+- Shows the current HA audio configuration: Build-in Audio Stereo as output, USB sound card is not visible
+
+pactl list 
+- Card #0: BCM2835 Headphone is detected, USB device is not in the list…
+
+ha audio restart
+- since I’ve connected the USB device to a running system, it seems natural to restart the docker container first.
+
+pactl list 
+- Card #0: USB Sound Device (stereo and surround profiles), Card #1: FHD Camera (input mono), Card #2: BCM2835
+
+ha audio reload
+- reload PulseAudio server
+
+ha audio info
+- output section shows Build-in and USB device
+ha audio default output --name alsa_output.usb-0d8c_USB_Sound_Device-00.analog-stereo 
+- sets default audio output
+
+    Alternatively, select USB Sound Device as output directly in Spotify add-on, default can remain the RPi’s onboard 3.5jack
