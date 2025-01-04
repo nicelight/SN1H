@@ -1,4 +1,4 @@
-
+/*
 //    Modbus slave example.
 //    https://github.com/yaacov/ArduinoModbusSlave
 //тут пример использования модбас с homeassistant 
@@ -6,7 +6,7 @@
 
 #include <ModbusSlave.h>
 
-#define SLAVE_ID 21           // The Modbus slave ID, change to the ID you want to use.
+#define SLAVE_ID 1           // The Modbus slave ID, change to the ID you want to use.
 #define RS485_CTRL_PIN 21     // Change to the pin the RE/DE pin of the RS485 controller is connected to.
 #define SERIAL_BAUDRATE 9600 // Change to the baudrate you want to use for Modbus communication.
 #define SERIAL_PORT Serial1   // Serial port to use for RS485 communication, change to the port you're using.
@@ -37,7 +37,7 @@ uint8_t readDigitalReg(uint8_t fc, uint16_t address, uint16_t length)
     Serial.print(coils[address + i]);
     Serial.print("= of Coil/DiscreteInp #");
     Serial.print(address + i);
-//    slave.writeCoilToBuffer(i, coils[address + i]);
+    slave.writeCoilToBuffer(i, coils[address + i]);
   }
 
   return STATUS_OK;
@@ -146,56 +146,6 @@ void loop()
   // When a request is received it's going to get validated.
   // And if there is a function registered to the received function code, this function will be executed.
   slave.poll();
-
-
-  static uint32_t prevMs = 0;
-  if ((millis() - prevMs) > 1000ul) {
-    prevMs = millis();
-    byte reg0 = (millis() / 1000) % 60;
-    byte reg1 = reg0 + 1;
-
-    inputRegisters[0] = reg0;
-    inputRegisters[1] = reg1;
-    Serial.print("\tInpReg0(RO)  "); //
-    Serial.print(reg0);
-    Serial.print("\tInpReg1(RO) ");
-    Serial.print(reg1);
-    Serial.print("\tholdReg0(RW) ");
-    Serial.print(holdingRegisters[0]);
-    Serial.print("\tholdReg1(RW) ");
-    Serial.print(holdingRegisters[0]);
-    Serial.println();
-
-  }//each 1 sec
 }
-
-
-/*
-    как записывать флоат в 2 регистра
-
-  union Float {
-    float    m_float;
-    uint16_t  m_sh[sizeof(float)/2];
-  } target_temperature;
-  target_temperature.m_float=20.0;
-  modbusregisters[TARGET_TEMP_REGISTER_HIGH]=target_temperature.m_sh[1];
-  modbusregisters[TARGET_TEMP_REGISTER_LOW]=target_temperature.m_sh[0];
-*/
-
-
-
-
-/*
-   как считывать флоат из регистров
-
-  union Float {
-  float    m_float;
-  uint16_t  m_sh[sizeof(float)/2];
-  } t,s;
-  t.m_sh[0]=modbusregisters[CURRENT_TEMP_REGISTER_LOW];
-  t.m_sh[1]=modbusregisters[CURRENT_TEMP_REGISTER_HIGH];
-  s.m_sh[0]=modbusregisters[TARGET_TEMP_REGISTER_LOW];
-  s.m_sh[1]=modbusregisters[TARGET_TEMP_REGISTER_HIGH];
-
 
 */
