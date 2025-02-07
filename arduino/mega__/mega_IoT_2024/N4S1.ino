@@ -39,7 +39,7 @@ void handleN4S1() {
   if (N4_S1_but.isSingle())
   {
     if (N4_spots.rightNowOn) { // если мгновенно включен свет
-      N4_spots.rightNowOn = 0; // ничего не делаем, убираем флаг
+      N4_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     } else {
       N4_spots.state = 0; // выключаем
       update_N4_Lamps();
@@ -49,6 +49,7 @@ void handleN4S1() {
 
   // двойной клик. on\off museum + ermitage.
   if (N4_S1_but.isDouble()) {
+    N4_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     if (N4_museums.state) {
       N4_museums.state = 0;
       N4_museums.lamp1 = 0; // не особо нужно в данном случае, разве для модбаса
@@ -63,6 +64,7 @@ void handleN4S1() {
   // тройной клик. меняем состояние светильников на 1, 2, 1+2.
   if (N4_S1_but.isTriple())
   {
+    N4_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     N4_spots.rightNowOn = 0; // флаг сбрасываем ( за ним приходится следить из каждого вызова кнопок
     // циклично меняем режимы работы 1..3
     switch (N4_spots.mode)
@@ -90,23 +92,42 @@ void handleN4S1() {
 
   // удержание. если флаг о включении возведен(т.е. он был выключен) включим весь свет в комнате,
   // иначе(если свет и так включен) выключаем весь свет в комнате, и даже тот за который не отвечаем
-  if (N4_S1_but.isHolded())
-  {
-    //      тушим весь свет и отправляем режим ночь
-    N4_spots.state = 0;
-    N4_museums.state = 0;
-    N4_kitchen.state = 0;
-    //
-    // тут отправляем команду на ночной режим
-    //
-    Serial.print("\n\n\t\tN4_S1_but  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
-    update_N4_Lamps();
-    update_N4_museums();
-    //    update_N4_kitchen(); // раскоментить как допишется кухня
-  }
+  if (N4_S1_but.isHolded()) {
+    if (N4_spots.rightNowOn ) {
+      N4_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
+      N4_spots.state = 1;
+      N4_museums.state = 1;
+      N4_kitchen.state = 1;
+      N4_tracks.state = 1;
+      update_N4_Lamps();
+      delay(50);
+      update_N4_museums();
+      delay(50);
+      update_N4_Tracks();
+      //    update_N4_kitchen(); // раскоментить как допишется кухня
+    }
+    else {
+      //      тушим весь свет и отправляем режим ночь
+      N4_spots.state = 0;
+      N4_museums.state = 0;
+      N4_kitchen.state = 0;
+      N4_tracks.state = 0;
+      update_N4_museums();
+      delay(50);
+      update_N4_Tracks();
+      delay(50);
+      update_N4_Lamps();
+      //    update_N4_kitchen(); // раскоментить как допишется кухня
+      //
+      // тут отправляем команду на ночной режим
+      //
+      Serial.print("\n\n\t\tN4_S1_but  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
+    }
+  }//holded
 
   if (N4_S1_but.hasClicks())
   {
+    N4_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     Serial.print("N4_S1_but multi Clicks: ");
     Serial.println(N4_S1_but.getClicks());
     // проверка на наличие нажатий

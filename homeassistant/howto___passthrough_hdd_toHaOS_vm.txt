@@ -1,0 +1,24 @@
+1. homeassistant VM proxmx - passthrough phisical drive into 
+https://www.youtube.com/watch?v=U-UTMuhmC1U
+команда из видео:
+/sbin/qm set 100 -virtio2 wwn-0x50014ee2157ff658
+2. расшаривание полного ssh доступа к haosVM
+в коментах парень на англ а потом на рус пишет со скринами.
+https://community.home-assistant.io/t/help-mounting-a-drive-on-proxmox/489372/5
+или видео
+https://www.youtube.com/watch?v=CHvBzX41-Ag
+флешку FAT16
+
+делаю ssh доступ по манам комент парня внизу на русском
+https://community.home-assistant.io/t/help-mounting-a-drive-on-proxmox/489372/5
+или по этому видосу 
+https://www.youtube.com/watch?v=CHvBzX41-Ag
+получается добавил NAS хранилище из диска. 
+
+добавляю это хранилище к фригату  по коменту парня Dleewee
+https://community.home-assistant.io/t/how-do-i-set-frigate-to-store-recordings-to-an-external-nas/702161/4
+
+не добавляется , потому что 
+
+VM_HDD_2TB/Frigate_media
+

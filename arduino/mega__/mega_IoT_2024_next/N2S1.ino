@@ -39,7 +39,7 @@ void handleN2S1() {
   if (N2_S1_but.isSingle())
   {
     if (N2_spots.rightNowOn) { // если мгновенно включен свет
-      N2_spots.rightNowOn = 0; // ничего не делаем, убираем флаг
+      N2_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     } else {
       N2_spots.state = 0; // выключаем
       update_N2_Lamps();
@@ -47,10 +47,25 @@ void handleN2S1() {
     }
   }//N2_spots.isSingle
 
+  // двойной клик. on\off museum + ermitage.
+  if (N2_S1_but.isDouble()) {
+    N2_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
+    //    if (N4_museums.state) {
+    //      N4_museums.state = 0;
+    //      N4_museums.lamp1 = 0; // не особо нужно в данном случае, разве для модбаса
+    //      N4_museums.lamp2 = 0; // не особо нужно в данном случае, разве для модбаса
+    //    } else {
+    //      N4_museums.state = 1;
+    //      N4_museums.lamp1 = 1; // не особо нужно в данном случае, разве для модбаса
+    //      N4_museums.lamp2 = 1; // не особо нужно в данном случае, разве для модбаса
+    //    }
+    //    update_N4_museums();
+  }
+
   // тройной клик. меняем состояние светильников на 1, 2, 1+2.
   if (N2_S1_but.isTriple())
   {
-    N2_spots.rightNowOn = 0; // флаг сбрасываем ( за ним приходится следить из каждого вызова кнопок
+    N2_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     // циклично меняем режимы работы 1..3
     switch (N2_spots.mode)
     {
@@ -78,34 +93,38 @@ void handleN2S1() {
   // удержание. если флаг о включении возведен(т.е. он был выключен) включим весь свет в комнате,
   // иначе(если свет и так включен) выключаем весь свет в комнате, и даже тот за который не отвечаем
   if (N2_S1_but.isHolded()) {
+      N2_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     //      тушим весь свет и отправляем режим ночь
+    N2_tracks.state = 0;
     N2_spots.state = 0;
-  Serial.print("\n\n\t\tN2_S1_but  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
-  update_N2_Lamps();
-}
+    update_N2_Lamps();
+    update_N2_Track();
+    Serial.print("\n\n\t\tN2_S1_but  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
+  }
 
-if (N2_S1_but.hasClicks())
-{
-  Serial.print("N2_S1_but multi Clicks: ");
-  Serial.println(N2_S1_but.getClicks());
-  // проверка на наличие нажатий
-}
-// если кнопка была удержана и хотим подсчитать время удержания
-//    if (button.isStep()) {
-//    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
-//    Serial.println(value);                              // для примера выведем в порт
-//  }
+  if (N2_S1_but.hasClicks())
+  {
+    N2_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
+    Serial.print("N2_S1_but multi Clicks: ");
+    Serial.println(N2_S1_but.getClicks());
+    // проверка на наличие нажатий
+  }
+  // если кнопка была удержана и хотим подсчитать время удержания
+  //    if (button.isStep()) {
+  //    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
+  //    Serial.println(value);                              // для примера выведем в порт
+  //  }
 }//handleN4_s1
 
 void update_N2_Lamps() {
   if (N2_spots.state) {
     digitalWrite(N2_SP, N2_spots.lamp1);
-//    digitalWrite(N2_LED, N2_spots.lamp2);
+    digitalWrite(N2_LED, N2_spots.lamp2);
   }
   else
   {
     digitalWrite(N2_SP, OFF);
-//    digitalWrite(N2_LED, OFF);
+    digitalWrite(N2_LED, OFF);
 
   }
 }//update_N2_Lamps

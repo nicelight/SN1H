@@ -35,7 +35,6 @@ void handleN1S1() {
   }
 
   // одиночный клик. если флаг о включенном свете возведен, убираем его и ничего не делаем,
-  //  иначе убираем флаг и выключаем свет
   if (N1_S1_but.isSingle())
   {
     if (N1_spots.rightNowOn) { // если мгновенно включен свет
@@ -71,38 +70,41 @@ void handleN1S1() {
         break;
     }
     update_N1_Lamps();     // включаем в зависимости от прошлого запомненного режима
-    Serial.println("\nN1_S1_but Double\n");
-    EE_N1_spots.update();                    // стараемся не вызывать часто эти данные
+    Serial.println("\nN1_S1_but Triple \n");
+    //    EE_N1_spots.update();                    // закомментировал в процессе отловки бага
   }
 
   // удержание. если флаг о включении возведен(т.е. он был выключен) включим весь свет в комнате,
   // иначе(если свет и так включен) выключаем весь свет в комнате, и даже тот за который не отвечаем
   if (N1_S1_but.isHolded()) {
+    N1_spots.rightNowOn = 0; // убираем флаг
     //      тушим весь свет и отправляем режим ночь
     N1_spots.state = 0;
-  Serial.print("\n\n\t\tN1_S1_but  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
-  update_N1_Lamps();
-}
+    Serial.print("\n\n\t\tN1_S1_but  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
+    update_N1_Lamps();
+  }
 
-if (N1_S1_but.hasClicks())
-{
-  Serial.print("N1_S1_but multi Clicks: ");
-  Serial.println(N1_S1_but.getClicks());
-  // проверка на наличие нажатий
-}
-// если кнопка была удержана и хотим подсчитать время удержания
-//    if (button.isStep()) {
-//    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
-//    Serial.println(value);                              // для примера выведем в порт
-//  }
+  if (N1_S1_but.hasClicks())
+  {
+    N1_spots.rightNowOn = 0; //убираем флаг
+    Serial.print("N1_S1_but multi Clicks: ");
+    Serial.println(N1_S1_but.getClicks());
+    // проверка на наличие нажатий
+  }
+  // если кнопка была удержана и хотим подсчитать время удержания
+  //    if (button.isStep()) {
+  //    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
+  //    Serial.println(value);                              // для примера выведем в порт
+  //  }
 }//handleN4_s1
 
 void update_N1_Lamps() {
+
   if (N1_spots.state) {
-//    digitalWrite(N1_SP1, N1_spots.lamp1);
-//    digitalWrite(N1_SP2, N1_spots.lamp2);
-    digitalWrite(N1_SP1, ON); //временный костыль для проверки. выше правильно
-    digitalWrite(N1_SP2, ON);
+    digitalWrite(N1_SP1, N1_spots.lamp1);
+    digitalWrite(N1_SP2, N1_spots.lamp2);
+    //    digitalWrite(N1_SP1, ON); //временный костыль для проверки. выше правильно
+    //    digitalWrite(N1_SP2, ON);
   }
   else
   {

@@ -22,7 +22,7 @@ void handleN7S1() {
   */
   N7_S_GATE_but.tick();
   EE_N7_spots.tick();
-  
+
 
   // первое срабатывание. если выключен свет, включим и установим флаг о включении
   if (N7_S_GATE_but.isPress()) {
@@ -40,7 +40,7 @@ void handleN7S1() {
   if (N7_S_GATE_but.isSingle())
   {
     if (N7_spots.rightNowOn) { // если мгновенно включен свет
-      N7_spots.rightNowOn = 0; // ничего не делаем, убираем флаг
+      N7_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     } else {
       N7_spots.state = 0; // выключаем
       update_N7_Lamps();
@@ -51,7 +51,7 @@ void handleN7S1() {
   // тройной клик. меняем состояние светильников на 1, 2, 1+2.
   if (N7_S_GATE_but.isTriple())
   {
-    N7_spots.rightNowOn = 0; // флаг сбрасываем ( за ним приходится следить из каждого вызова кнопок
+    N7_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     // циклично меняем режимы работы 1..3
     switch (N7_spots.mode)
     {
@@ -78,12 +78,58 @@ void handleN7S1() {
 
   // удержание. если флаг о включении возведен(т.е. он был выключен) включим весь свет в комнате,
   // иначе(если свет и так включен) выключаем весь свет в комнате, и даже тот за который не отвечаем
-  if (N7_S_GATE_but.isHolded())
-  {
-    //      тушим весь свет и отправляем режим ночь
-    N7_spots.state = 0;
-    Serial.print("\n\n\t\tN7_S_GATE_but  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
-    update_N7_Lamps();
+  if (N7_S_GATE_but.isHolded()) {
+    N7_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
+    if (!weAreAtHome) { // если никого не было дома и пришли
+      // СЦЕНА - Пришли домой. включаем свет во всей квартире кроме туалетов
+      weAreAtHome = 1;
+      N4_tracks.state = 1;
+      N4_spots.state = 1;
+      N4_museums.state = 1;
+      N7_spots.state = 1;
+      update_N4_museums();
+      delay(50);
+      update_N4_Lamps();
+      delay(50);
+      update_N4_Tracks();
+      delay(50);
+      update_N7_Lamps();
+      Serial.print("\n\n\t\tN7_S_GATE_but Come home ON\n\n");// TODO отправка режима ночь !!!
+    }
+    else {
+      // СЦЕНА - уходим из дому, тушим все.
+      weAreAtHome = 0;
+      N1_spots.state = 0;
+      N2_spots.state = 0;
+      N2_tracks.state = 0;
+      N3_spots.state = 0;
+      N4_spots.state = 0;
+      N4_tracks.state = 0;
+      N4_museums.state = 0;
+      N5_spots.state = 0;
+      N6_spots.state = 0;
+      N7_spots.state = 0;
+      update_N1_Lamps();
+      delay(50);
+      update_N2_Lamps();
+      delay(50);
+      update_N2_Track();
+      delay(50);
+      update_N3_Lamps();
+      delay(50);
+      update_N4_museums();
+      delay(50);
+      update_N4_Lamps();
+      delay(50);
+      update_N4_Tracks();
+      delay(50);
+      update_N5_Lamps();
+      delay(50);
+      update_N6_Lamps();
+      delay(50);
+      update_N7_Lamps();
+      Serial.print("\n\n\t\tN7_S_GATE_but Go out. Bye... \n\n");// TODO отправка режима ночь !!!
+    }
   }
 
   if (N7_S_GATE_but.hasClicks())
@@ -99,6 +145,7 @@ void handleN7S1() {
   //  }
 }//handleN7_s1
 
+
 void update_N7_Lamps() {
   if (N7_spots.state) {
     digitalWrite(N7_SP, N7_spots.lamp1);
@@ -110,3 +157,33 @@ void update_N7_Lamps() {
     digitalWrite(N7_LED, OFF);
   }
 }//update_N7_Lamps
+//
+//
+//
+
+
+void pirN7() {
+  statePIR7 = digitalRead(N7_SENS_PIR);
+  if (each100msPirN7.ready()) { // каждых 100 мс
+    if (statePIR7 && !N7_spots.state) { // сработал датчик и свет не горел
+      digitalWrite(N7_SP, ON);
+      if (!startPirLightN7) {
+        startPirLightN7 = 1;
+      }
+    }
+    //    Serial.print("\n\t");
+    //    Serial.print(millis() >> 10); // сколько ~секунд прошло
+    //    Serial.print("\t\t\t\t pir 7 = ");
+    //    Serial.println(statePIR7);
+
+    // прошло время служения PIR N7 и состояния света от кнопки по прежнему выключенные
+    // потушим принудительно
+    if (each5MinForN7.ready()) {
+      if (!N7_spots.state && startPirLightN7) { // вышел таймаут служения светом от сенсора и за это время не произошло включения с кнопки
+        digitalWrite(N7_SP, OFF);
+      }
+      startPirLightN7 = 0;
+    }
+
+  }// each 100 ms
+}//pirN7()

@@ -25,6 +25,7 @@ void handleN3S() {
 
   // первое срабатывание. если выключен свет, включим и установим флаг о включении
   if (N3_S1_but.isPress()) {
+    statePIR3 = 0; // обнулим датчик движения
     if (!N3_spots.state) {
       N3_spots.state = 1; // включаем
       N3_spots.rightNowOn = 1;// возводим флаг, что произошло мгновенное включение
@@ -39,7 +40,7 @@ void handleN3S() {
   if (N3_S1_but.isSingle())
   {
     if (N3_spots.rightNowOn) { // если мгновенно включен свет
-      N3_spots.rightNowOn = 0; // ничего не делаем, убираем флаг
+      N3_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     } else {
       N3_spots.state = 0; // выключаем
       update_N3_Lamps();
@@ -49,21 +50,19 @@ void handleN3S() {
 
   // двойной клик. on\off альтернатива
   if (N3_S1_but.isDouble()) {
-//    if (N3_museums.state) {
-//      N3_museums.state = 0;
-//      N3_museums.lamp1 = 0; // не особо нужно в данном случае, разве для модбаса
-//      N3_museums.lamp2 = 0; // не особо нужно в данном случае, разве для модбаса
-//    } else {
-//      N3_museums.state = 1;
-//      N3_museums.lamp1 = 1; // не особо нужно в данном случае, разве для модбаса
-//      N3_museums.lamp2 = 1; // не особо нужно в данном случае, разве для модбаса
-//    }
-//    update_N3_museums();
+    N3_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
+    if (N3_fan_state) {
+      N3_fan_state = 0;
+      digitalWrite(N3_FAN, OFF);
+    } else {
+      N3_fan_state = 1;
+      digitalWrite(N3_FAN, ON);
+    }
   }
   // тройной клик. меняем состояние светильников на 1, 2, 1+2.
   if (N3_S1_but.isTriple())
   {
-    N3_spots.rightNowOn = 0; // флаг сбрасываем ( за ним приходится следить из каждого вызова кнопок
+    N3_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     // циклично меняем режимы работы 1..3
     switch (N3_spots.mode)
     {
@@ -90,20 +89,25 @@ void handleN3S() {
 
   // удержание. если флаг о включении возведен(т.е. он был выключен) включим весь свет в комнате,
   // иначе(если свет и так включен) выключаем весь свет в комнате, и даже тот за который не отвечаем
-  if (N3_S1_but.isHolded())
-  {
-    //      тушим весь свет и отправляем режим ночь
-    N3_spots.state = 0;
-    //
-    // тут отправляем команду на ночной режим
-    //
-    Serial.print("\n\n\t\tN3_S1_but  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
-    update_N3_Lamps();
-    //    update_N3_kitchen(); // раскоментить как допишется кухня
+  if (N3_S1_but.isHolded()){
+    // СЦЕНА ВХОД, заходим в темную ванну удерживая кнопку, хотим с вытяжкой
+    if (N3_spots.rightNowOn) { //если свет включен после тьмы
+      N3_spots.rightNowOn = 0;
+    } //
+//    // СЦЕНА ВЫХОД выходим из комнаты с включенным светом,
+//    else {
+//      N3_spots.state = 0;
+//      update_N3_Lamps();
+//    Serial.print("\n\n\t\t N3 HOLDED for shutdown \n\n");// TODO отправка режима ночь !!!
+//    }
+    // вытяжка
+    if (!fanN3state) fanN3state = 1; // если вытяжка выключена, включим ее
+    else fanN3state = 6; // иначе выключаем вытяжку
   }
 
   if (N3_S1_but.hasClicks())
   {
+    N3_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     Serial.print("N3_S1_but multi Clicks: ");
     Serial.println(N3_S1_but.getClicks());
     // проверка на наличие нажатий
@@ -126,3 +130,57 @@ void update_N3_Lamps() {
     digitalWrite(N3_LED, OFF);
   }
 }//update_N3_Lamps
+
+
+void fanN3() {
+  switch (fanN3state) {
+    case 0:
+      each10minFanN3.rst();
+      break;
+    // запуск на 10 минут
+    case 1:
+      digitalWrite(N3_FAN, ON);
+      fanN3state = 2;
+      break;
+    //ожидаем когда время пройдет
+    case 2:
+      if (each10minFanN3.ready()) {
+        fanN3state = 6;
+      }
+      break;
+    // выключаем, уходим на ожидание
+    case 6:
+      delay(400);
+      digitalWrite(N3_FAN, OFF);
+      fanN3state = 0;
+      break;
+
+  }
+}//fanN3()
+
+
+void pirN3() {
+    statePIR3 = digitalRead(N3_SENS_PIR);
+  if (each100msPirN3.ready()) { // каждых 100 мс
+    if (statePIR3 && !N3_spots.state) { // сработал датчик и свет не горел
+      digitalWrite(N3_LED, ON);
+      if (!startPirLightN3) {
+        startPirLightN3 = 1;
+      }
+    }
+    //    Serial.print("\n\t");
+    //    Serial.print(millis() >> 10); // сколько ~секунд прошло
+    //    Serial.print("\t\t\t\t pir 7 = ");
+    //    Serial.println(statePIR7);
+
+    // прошло время служения PIR N3 и состояния света от кнопки по прежнему выключенные
+    // потушим принудительно
+    if (each5MinForN3.ready()) {
+      if (!N3_spots.state && startPirLightN3) { // вышел таймаут служения светом от сенсора и за это время не произошло включения с кнопки
+        digitalWrite(N3_LED, OFF);
+      }
+      startPirLightN3 = 0;
+    }
+
+  }// each 100 ms
+}//pirN3()

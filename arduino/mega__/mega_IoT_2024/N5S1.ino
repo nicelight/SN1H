@@ -39,13 +39,20 @@ void handleN5S1() {
   if (N5_S1_but.isSingle())
   {
     if (N5_spots.rightNowOn) { // если мгновенно включен свет
-      N5_spots.rightNowOn = 0; // ничего не делаем, убираем флаг
+      N5_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     } else {
       N5_spots.state = 0; // выключаем
       update_N5_Lamps();
       Serial.println("/nN5_S1_but Single");
     }
   }//N5_spots.isSingle
+
+  //двойной клик включает\выключает кровать
+  if (N5_S1_but.isDouble()) {
+    N5_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
+    //    N5_spots.lamp3 = !N5_spots.lamp3;
+    //    update_N5_Lamps();
+  }
 
   // тройной клик. меняем состояние светильников на 1, 2, 1+2.
   if (N5_S1_but.isTriple())
@@ -71,32 +78,37 @@ void handleN5S1() {
         break;
     }
     update_N5_Lamps();     // включаем в зависимости от прошлого запомненного режима
-    Serial.println("\nN5_S1_but Double\n");
+    Serial.println("\nN5_S1_but Triple\n");
+    Serial.print("N5_spots.mode = ");
+    Serial.print(N5_spots.mode);
+    Serial.print("\t N5_spots.lamp2 = ");
+    Serial.println(N5_spots.lamp2);
+
     EE_N5_spots.update();                    // стараемся не вызывать часто эти данные
   }
 
   // удержание. если флаг о включении возведен(т.е. он был выключен) включим весь свет в комнате,
   // иначе(если свет и так включен) выключаем весь свет в комнате, и даже тот за который не отвечаем
-  if (N5_S1_but.isHolded())
-  {
-    if (N5_spots.rightNowOn) { // если мгновенно включен свет ( т.е. было темно)
-      N5_spots.rightNowOn = 0; // флаг сбрасываем
-      //      включим его весь
-      N5_spots.lamp1 = ON;
-      N5_spots.lamp2 = ON;
-    }
-    else  // если же было светло
-    {
-      //      тушим весь свет и отправляем режим ночь
+  if (N5_S1_but.isHolded()) {
+    // СЦЕНА ВХОД, заходим в темную ванну удерживая кнопку, хотим с вытяжкой
+    if (N5_spots.rightNowOn) { //если свет включен после тьмы
+      N5_spots.rightNowOn = 0;
+      N5_spots.state = 1;
+      N5_spots.lamp3 = ON; // кровать включим
+      update_N5_Lamps();
+    } //
+    // СЦЕНА ВЫХОД выходим из комнаты с включенным светом,
+    else {
       N5_spots.state = 0;
-      Serial.print("\n\n\t\tN5_S1_but  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
+      N5_spots.lamp3 = OFF; // кровать выключим
+      update_N5_Lamps();
+      Serial.println("N5 Holded\n");
     }
-    update_N5_Lamps();
-    Serial.println("Holded\n");
-  }
+  }//holded
 
   if (N5_S1_but.hasClicks())
   {
+    N5_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     Serial.print("N5_S1_but multi Clicks: ");
     Serial.println(N5_S1_but.getClicks());
     // проверка на наличие нажатий
@@ -109,20 +121,20 @@ void handleN5S1() {
 }//handleN4_s1
 
 void update_N5_Lamps() {
+  //  digitalWrite(N5_BED, N5_spots.lamp3);
   if (N5_spots.state) {
-    //N5_BED
-    //N5_SHELF
     digitalWrite(N5_SP1, N5_spots.lamp1);
     digitalWrite(N5_SP2, N5_spots.lamp1);
-    //    digitalWrite(N5_BED, N5_spots.lamp2);
     digitalWrite(N5_SHELF, N5_spots.lamp2);
+    digitalWrite(N5_BED, N5_spots.lamp2);
   }
   else
   {
     digitalWrite(N5_SP1, OFF);
     digitalWrite(N5_SP2, OFF);
-    //    digitalWrite(N5_BED, OFF);
     digitalWrite(N5_SHELF, OFF);
+    digitalWrite(N5_BED, OFF);
 
   }
+
 }//update_N5_Lamps
