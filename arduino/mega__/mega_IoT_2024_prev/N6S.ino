@@ -1,7 +1,5 @@
-//#define N6_SP 10
-//#define N6_LED 11
 
-// обработка нажатий клавиш N6.S1 
+// обработка нажатий клавиш N6.S1
 // функция по тройному нажатию меняет состояния свечений на 1, 2, 1+2
 // по одинарному нажатию включает\выключает свет
 // по долгому удержанию, выключает свет и посылает сигнал - темноты
@@ -22,10 +20,13 @@ void handleN6S1() {
     //  uint8_t mode; // режим ( первая лампа включена, вторая включена или обе включены)
     //};
   */
+  N6_S1_but.tick();
+  EE_N6_spots.tick();
+
   // первое срабатывание. если выключен свет, включим и установим флаг о включении
   //-- заменено N4 _S1_but  на N6_S1_but
   if (N6_S1_but.isPress()) {
-    //--  заменено N4 _spots на N6_spots
+    statePIR6 = 0; // обнулим датчик движения
     if (!N6_spots.state) {
       N6_spots.state = 1; // включаем
       N6_spots.rightNowOn = 1;// возводим флаг, что произошло мгновенное включение
@@ -41,7 +42,7 @@ void handleN6S1() {
   if (N6_S1_but.isSingle())
   {
     if (N6_spots.rightNowOn) { // если мгновенно включен свет
-      N6_spots.rightNowOn = 0; // ничего не делаем, убираем флаг
+      N6_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     } else {
       N6_spots.state = 0; // выключаем
       update_N6_Lamps();
@@ -50,10 +51,23 @@ void handleN6S1() {
     }
   }//N6_spots.isSingle
 
+
+  // двойной клик. on\off альтернатива
+  if (N6_S1_but.isDouble()) {
+    N6_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
+    //    if(N6_fan_state){
+    //      N6_fan_state = 0;
+    //      digitalWrite(N6_FAN, OFF);
+    //    } else {
+    //      N6_fan_state = 1;
+    //      digitalWrite(N6_FAN, ON);
+    //    }
+  }
+
   // тройной клик. меняем состояние светильников на 1, 2, 1+2.
   if (N6_S1_but.isTriple())
   {
-    N6_spots.rightNowOn = 0; // флаг сбрасываем ( за ним приходится следить из каждого вызова кнопок
+    N6_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     // циклично меняем режимы работы 1..3
     switch (N6_spots.mode)
     {
@@ -84,27 +98,26 @@ void handleN6S1() {
   // иначе(если свет и так включен) выключаем весь свет в комнате, и даже тот за который не отвечаем
   if (N6_S1_but.isHolded())
   {
-    if (N6_spots.rightNowOn) { // если мгновенно включен свет ( т.е. было темно)
-      N6_spots.rightNowOn = 0; // флаг сбрасываем
-      //      включим его весь
-      N6_spots.lamp1 = ON;
-      N6_spots.lamp2 = ON;
-    }
-    else  // если же было светло
-    {
-      //      тушим весь свет и отправляем режим ночь
-      N6_spots.state = 0;
-      Serial.print("\n\n\t\t N6 NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
-    }
-    update_N6_Lamps();
-    Serial.println("N6_S1 Holded\n");
+    // СЦЕНА ВХОД, заходим в темную ванну удерживая кнопку, хотим с вытяжкой
+    if (N6_spots.rightNowOn) { //если свет включен после тьмы
+      N6_spots.rightNowOn = 0;
+    } //
+//    // СЦЕНА ВЫХОД выходим из комнаты с включенным светом,
+//    else {
+//      N6_spots.state = 0;
+//      update_N6_Lamps();
+//    Serial.print("\n\n\t\t N6 HOLDED for shutdown \n\n");// TODO отправка режима ночь !!!
+//    }
+    // вытяжка
+    if (!fanN6state) fanN6state = 1; // если вытяжка выключена, включим ее
+    else fanN6state = 6; // иначе выключаем вытяжку
   }
 
   if (N6_S1_but.hasClicks())
   {
+    N6_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     Serial.print("N6_S1 multi Clicks: ");
     Serial.println(N6_S1_but.getClicks());
-    N6_spots.rightNowOn = 0; // флаг сбрасываем
     // проверка на наличие нажатий
   }
   // если кнопка была удержана и хотим подсчитать время удержания
@@ -112,15 +125,16 @@ void handleN6S1() {
   //    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
   //    Serial.println(value);                              // для примера выведем в порт
   //  }
+
 }//handleN6S1()
 
 void update_N6_Lamps() {
   if (N6_spots.state) {
 
-//#define N6_SENS1 34
-//#define N6_SENS_PIR 35
-//#define N6_SP 10
-//#define N6_LED 11
+    //#define N6_SENS1 34
+    //#define N6_SENS_PIR 35
+    //#define N6_SP 10
+    //#define N6_LED 11
 
     digitalWrite(N6_SP, N6_spots.lamp1);
     digitalWrite(N6_LED, N6_spots.lamp2);
@@ -131,3 +145,55 @@ void update_N6_Lamps() {
     digitalWrite(N6_LED, OFF);
   }
 }//update_N6_Lamps()
+
+void fanN6() {
+  switch (fanN6state) {
+    case 0:
+      each10minFanN6.rst();
+      break;
+    // запуск на 10 минут
+    case 1:
+      digitalWrite(N6_FAN, ON);
+      fanN6state = 2;
+      break;
+    //ожидаем когда время пройдет
+    case 2:
+      if (each10minFanN6.ready()) {
+        fanN6state = 6;
+      }
+      break;
+    // выключаем, уходим на ожидание
+    case 6:
+      delay(400);
+      digitalWrite(N6_FAN, OFF);
+      fanN6state = 0;
+      break;
+  }
+}//fanN6()
+
+void pirN6() {
+  statePIR6 = digitalRead(N6_SENS_PIR);
+  if (each100msPirN6.ready()) { // каждых 100 мс
+    if (statePIR6 && !N6_spots.state) { // сработал датчик и свет не горел
+      digitalWrite(N6_LED, ON);
+      if (!startPirLightN6) {
+        startPirLightN6 = 1;
+        //        each5secForN6.rst();
+      }
+    }
+    //    Serial.print("\n\t");
+    //    Serial.print(millis() >> 10); // сколько ~секунд прошло
+    //    Serial.print("\t\t\t\t pir 7 = ");
+    //    Serial.println(statePIR7);
+
+    // прошло время служения PIR N6 и состояния света от кнопки по прежнему выключенные
+    // потушим принудительно
+    if (each5MinForN6.ready()) {
+      if (!N6_spots.state && startPirLightN6) { // вышел таймаут служения светом от сенсора и за это время не произошло включения с кнопки
+        digitalWrite(N6_LED, OFF);
+      }
+      startPirLightN6 = 0;
+    }
+
+  }// each 100 ms
+}//pirN6()

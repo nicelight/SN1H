@@ -20,13 +20,16 @@ void handleN4S1() {
     //  uint8_t mode; // режим ( первая лампа включена, вторая включена или обе включены)
     //};
   */
+  N4_S1_but.tick();
+  EE_N4_spots.tick();
+
   // первое срабатывание. если выключен свет, включим и установим флаг о включении
   if (N4_S1_but.isPress()) {
     if (!N4_spots.state) {
       N4_spots.state = 1; // включаем
       N4_spots.rightNowOn = 1;// возводим флаг, что произошло мгновенное включение
       update_N4_Lamps(); // зажжем нужные лампы
-      Serial.println("N4_S1 Press");
+      Serial.println("\n N4_S1_but Press");
       // обновить модбас
     }
   }
@@ -36,20 +39,32 @@ void handleN4S1() {
   if (N4_S1_but.isSingle())
   {
     if (N4_spots.rightNowOn) { // если мгновенно включен свет
-      N4_spots.rightNowOn = 0; // ничего не делаем, убираем флаг
+      N4_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     } else {
       N4_spots.state = 0; // выключаем
       update_N4_Lamps();
-      Serial.println("N4_S1 Single\n");
-
+      Serial.println("/nN4_S1_but Single");
     }
   }//N4_spots.isSingle
 
-  //  update_N4_Lamps();
-
+  // двойной клик. on\off museum + ermitage.
+  if (N4_S1_but.isDouble()) {
+    N4_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
+    if (N4_museums.state) {
+      N4_museums.state = 0;
+      N4_museums.lamp1 = 0; // не особо нужно в данном случае, разве для модбаса
+      N4_museums.lamp2 = 0; // не особо нужно в данном случае, разве для модбаса
+    } else {
+      N4_museums.state = 1;
+      N4_museums.lamp1 = 1; // не особо нужно в данном случае, разве для модбаса
+      N4_museums.lamp2 = 1; // не особо нужно в данном случае, разве для модбаса
+    }
+    update_N4_museums();
+  }
   // тройной клик. меняем состояние светильников на 1, 2, 1+2.
   if (N4_S1_but.isTriple())
   {
+    N4_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
     N4_spots.rightNowOn = 0; // флаг сбрасываем ( за ним приходится следить из каждого вызова кнопок
     // циклично меняем режимы работы 1..3
     switch (N4_spots.mode)
@@ -71,37 +86,50 @@ void handleN4S1() {
         break;
     }
     update_N4_Lamps();     // включаем в зависимости от прошлого запомненного режима
-    Serial.println("N4_s1 Double\n");
+    Serial.println("\nN4_S1_but Double\n");
     EE_N4_spots.update();                    // стараемся не вызывать часто эти данные
-    // EE_N2_spots.update();
-    // EE_N3_spots.update();
   }
 
   // удержание. если флаг о включении возведен(т.е. он был выключен) включим весь свет в комнате,
   // иначе(если свет и так включен) выключаем весь свет в комнате, и даже тот за который не отвечаем
-  if (N4_S1_but.isHolded())
-  {
-    if (N4_spots.rightNowOn) { // если мгновенно включен свет ( т.е. было темно)
-      N4_spots.rightNowOn = 0; // флаг сбрасываем
-      //      включим его весь
-      N4_spots.lamp1 = ON;
-      N4_spots.lamp2 = ON;
+  if (N4_S1_but.isHolded()) {
+    if (N4_spots.rightNowOn ) {
+      N4_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
+      N4_spots.state = 1;
+      N4_museums.state = 1;
+      N4_kitchen.state = 1;
+      N4_tracks.state = 1;
+      update_N4_Lamps();
+      delay(50);
+      update_N4_museums();
+      delay(50);
+      update_N4_Tracks();
+      //    update_N4_kitchen(); // раскоментить как допишется кухня
     }
-    else  // если же было светло
-    {
+    else {
       //      тушим весь свет и отправляем режим ночь
       N4_spots.state = 0;
-      Serial.print("\n\n\t\tN4  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
+      N4_museums.state = 0;
+      N4_kitchen.state = 0;
+      N4_tracks.state = 0;
+      update_N4_museums();
+      delay(50);
+      update_N4_Tracks();
+      delay(50);
+      update_N4_Lamps();
+      //    update_N4_kitchen(); // раскоментить как допишется кухня
+      //
+      // тут отправляем команду на ночной режим
+      //
+      Serial.print("\n\n\t\tN4_S1_but  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
     }
-    update_N4_Lamps();
-    Serial.println("Holded\n");
-  }
+  }//holded
 
   if (N4_S1_but.hasClicks())
   {
-    Serial.print("N4_S1 multi Clicks: ");
+    N4_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
+    Serial.print("N4_S1_but multi Clicks: ");
     Serial.println(N4_S1_but.getClicks());
-    N4_spots.rightNowOn = 0; // флаг сбрасываем
     // проверка на наличие нажатий
   }
   // если кнопка была удержана и хотим подсчитать время удержания
@@ -122,3 +150,16 @@ void update_N4_Lamps() {
     digitalWrite(N4_SP2, OFF);
   }
 }//update_N4_Lamps
+
+void update_N4_museums() {
+  if (N4_museums.state) {
+    digitalWrite(N4_MUS, N4_spots.lamp1);
+    digitalWrite(N4_ERM, N4_spots.lamp2);
+  }
+  else
+  {
+    digitalWrite(N4_MUS, OFF);
+    digitalWrite(N4_ERM, OFF);
+  }
+
+}//update_N4_museums()

@@ -118,11 +118,13 @@ void handleN5S1() {
   //    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
   //    Serial.println(value);                              // для примера выведем в порт
   //  }
+  update_N5_modbus();
 }//handleN4_s1
 
 void update_N5_Lamps() {
   //  digitalWrite(N5_BED, N5_spots.lamp3);
   if (N5_spots.state) {
+    ha[N5_LIGHTS] = 1;
     digitalWrite(N5_SP1, N5_spots.lamp1);
     digitalWrite(N5_SP2, N5_spots.lamp1);
     digitalWrite(N5_SHELF, N5_spots.lamp2);
@@ -130,11 +132,25 @@ void update_N5_Lamps() {
   }
   else
   {
+    ha[N5_LIGHTS] = 0;
     digitalWrite(N5_SP1, OFF);
     digitalWrite(N5_SP2, OFF);
     digitalWrite(N5_SHELF, OFF);
     digitalWrite(N5_BED, OFF);
+  }
+}//update_N5_Lamps
+
+
+// обработка modbus
+//N5_LIGHTS 35
+void update_N5_modbus() {
+  if ((N5_spots.state == 0) && (ha[N5_LIGHTS] == 1)) { //свет потушен а с ha пришло - включить
+    N5_spots.state = 1;
+    update_N5_Lamps();
+  }
+  else if ((N5_spots.state == 1) && (ha[N5_LIGHTS] == 0)) { //включенный свет надо потушить
+    N5_spots.state = 0;
+    update_N5_Lamps();
 
   }
-
-}//update_N5_Lamps
+}//update_N5_modbus()

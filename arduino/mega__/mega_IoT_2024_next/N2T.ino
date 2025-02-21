@@ -94,14 +94,33 @@ void handleN2T() {
   //    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
   //    Serial.println(value);                              // для примера выведем в порт
   //  }
+  update_N2_tr_modbus();
 }//handleN2_T
+
 
 void update_N2_Track() {
   if (N2_tracks.state) {
+    ha[N2_TRACK_LIGHTS] = 1;
     digitalWrite(N2_TRACK, N2_tracks.lamp1);
   }
   else
   {
+    ha[N2_TRACK_LIGHTS] = 0;
     digitalWrite(N2_TRACK, OFF);
   }
 }//update_N2_Track
+
+
+// обработка modbus
+//N2_TRACK_LIGHTS 14
+void update_N2_tr_modbus() {
+  if ((N2_tracks.state == 0) && (ha[N2_TRACK_LIGHTS] == 1)) { //свет потушен а с ha пришло - включить
+    N2_tracks.state = 1;
+    update_N2_Track();
+  }
+  else if ((N2_tracks.state == 1) && (ha[N2_TRACK_LIGHTS] == 0)) { //включенный свет надо потушить
+    N2_tracks.state = 0;
+    update_N2_Track();
+
+  }
+}//update_N2_tr_modbus()

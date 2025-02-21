@@ -1,4 +1,3 @@
-
 // обработка нажатий клавиш N1.S1 ( у входа в гостевую, возле планшета)
 // функция по тройному нажатию меняет состояния свечений на 1, 2, 1+2
 // по одинарному нажатию включает\выключает свет
@@ -96,11 +95,13 @@ void handleN1S1() {
   //    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
   //    Serial.println(value);                              // для примера выведем в порт
   //  }
+  update_N1_modbus();
 }//handleN4_s1
 
-void update_N1_Lamps() {
 
+void update_N1_Lamps() {
   if (N1_spots.state) {
+    ha[N1_LIGHTS] = 1;
     digitalWrite(N1_SP1, N1_spots.lamp1);
     digitalWrite(N1_SP2, N1_spots.lamp2);
     //    digitalWrite(N1_SP1, ON); //временный костыль для проверки. выше правильно
@@ -108,8 +109,24 @@ void update_N1_Lamps() {
   }
   else
   {
+    ha[N1_LIGHTS] = 0;
     digitalWrite(N1_SP1, OFF);
     digitalWrite(N1_SP2, OFF);
 
   }
 }//update_N1_Lamps
+
+
+// обработка modbus
+//N1_LIGHTS 31
+void update_N1_modbus() { 
+  if ((N1_spots.state == 0) && (ha[N1_LIGHTS] == 1)) { //свет потушен а с ha пришло - включить
+    N1_spots.state = 1;
+    update_N1_Lamps();
+  }
+  else if ((N1_spots.state == 1) && (ha[N1_LIGHTS] == 0)) { //включенный свет надо потушить
+    N1_spots.state = 0;
+    update_N1_Lamps();
+
+  }
+}//update_N1_modbus()

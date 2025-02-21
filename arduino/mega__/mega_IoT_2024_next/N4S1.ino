@@ -88,6 +88,7 @@ void handleN4S1() {
     update_N4_Lamps();     // включаем в зависимости от прошлого запомненного режима
     Serial.println("\nN4_S1_but Double\n");
     EE_N4_spots.update();                    // стараемся не вызывать часто эти данные
+    EE_N4_museums.update();
   }
 
   // удержание. если флаг о включении возведен(т.е. он был выключен) включим весь свет в комнате,
@@ -137,29 +138,62 @@ void handleN4S1() {
   //    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
   //    Serial.println(value);                              // для примера выведем в порт
   //  }
+  update_N4_modbus();
 }//handleN4_s1
+
 
 void update_N4_Lamps() {
   if (N4_spots.state) {
+    ha[N4_LIGHTS] = 1;
     digitalWrite(N4_SP1, N4_spots.lamp1);
     digitalWrite(N4_SP2, N4_spots.lamp2);
   }
   else
   {
+    ha[N4_LIGHTS] = 0;
     digitalWrite(N4_SP1, OFF);
     digitalWrite(N4_SP2, OFF);
   }
 }//update_N4_Lamps
 
+
 void update_N4_museums() {
   if (N4_museums.state) {
+    ha[N4_MUSEUMS_LIGHTS] = 1;
     digitalWrite(N4_MUS, N4_spots.lamp1);
     digitalWrite(N4_ERM, N4_spots.lamp2);
   }
   else
   {
+    ha[N4_MUSEUMS_LIGHTS] = 0;
     digitalWrite(N4_MUS, OFF);
     digitalWrite(N4_ERM, OFF);
   }
-
 }//update_N4_museums()
+
+
+
+// обработка modbus
+//N4_LIGHTS 34
+//N4_MUSEUMS_LIGHTS 17
+//N4_TRACK_LIGHTS 15
+//N4_KITCHEN_LIGHTS 16
+//N4_MEAL_LIGHTS 18
+void update_N4_modbus() {
+  if ((N4_spots.state == 0) && (ha[N4_LIGHTS] == 1)) { //свет потушен а с ha пришло - включить
+    N4_spots.state = 1;
+    update_N4_Lamps();
+  }
+  else if ((N4_spots.state == 1) && (ha[N4_LIGHTS] == 0)) { //включенный свет надо потушить
+    N4_spots.state = 0;
+    update_N4_Lamps();
+  }
+  if ((N4_museums.state == 0) && (ha[N4_MUSEUMS_LIGHTS] == 1)) { //свет потушен а с ha пришло - включить
+    N4_museums.state = 1;
+    update_N4_museums();
+  }
+  else if ((N4_museums.state == 1) && (ha[N4_MUSEUMS_LIGHTS] == 0)) { //включенный свет надо потушить
+    N4_museums.state = 0;
+    update_N4_museums();
+  }
+}//update_N4_modbus()

@@ -6,10 +6,10 @@
 
 #include <ModbusSlave.h>
 
-#define SLAVE_ID 21           // The Modbus slave ID, change to the ID you want to use.
-#define RS485_CTRL_PIN 21     // Change to the pin the RE/DE pin of the RS485 controller is connected to.
+#define SLAVE_ID 10           // The Modbus slave ID, change to the ID you want to use.
+#define RS485_CTRL_PIN 16     // Change to the pin the RE/DE pin of the RS485 controller is connected to.
 #define SERIAL_BAUDRATE 9600 // Change to the baudrate you want to use for Modbus communication.
-#define SERIAL_PORT Serial1   // Serial port to use for RS485 communication, change to the port you're using.
+#define SERIAL_PORT Serial1   // Serial1 port RX1=19=RO, TX1=18=DI,to use for RS485 communication
 
 // Modbus object declaration
 Modbus slave(SERIAL_PORT, SLAVE_ID, RS485_CTRL_PIN);

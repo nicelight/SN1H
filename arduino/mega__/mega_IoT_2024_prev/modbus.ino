@@ -3,7 +3,7 @@
 
 //////// ModBus
 //#include <ModbusRTUSlave.h>
-//#define RS485_DE_PIN 21
+//#define RS485_DE_PIN 25
 //ModbusRTUSlave modbus(Serial1, RS485_DE_PIN);  // (Serial1, DEpin) ; TX1 = 18; RX1 = 19;
 //bool coils[2];
 //bool discreteInputs[2];

@@ -123,17 +123,37 @@ void handleN4TR() {
   //    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
   //    Serial.println(value);                              // для примера выведем в порт
   //  }
+  update_N4_tr_modbus();
 }//handleN4_s1
+
 
 void update_N4_Tracks() {
   if (N4_tracks.state) {
-    //
+    ha[N4_TRACK_LIGHTS] = 1;
     digitalWrite(N4_TR1, N4_tracks.lamp1);
     digitalWrite(N4_TR2, N4_tracks.lamp2);
   }
   else
   {
+    ha[N4_TRACK_LIGHTS] = 0;
     digitalWrite(N4_TR1, OFF);
     digitalWrite(N4_TR2, OFF);
   }
 }//update_N4_Tracks
+
+
+
+
+// обработка modbus
+//N4_TRACK_LIGHTS 15
+void update_N4_tr_modbus() {
+  if ((N4_tracks.state == 0) && (ha[N4_TRACK_LIGHTS] == 1)) { //свет потушен а с ha пришло - включить
+    N4_tracks.state = 1;
+    update_N4_Tracks();
+  }
+  else if ((N4_tracks.state == 1) && (ha[N4_TRACK_LIGHTS] == 0)) { //включенный свет надо потушить
+    N4_tracks.state = 0;
+    update_N4_Tracks();
+
+  }
+}//update_N4_tr_modbus()

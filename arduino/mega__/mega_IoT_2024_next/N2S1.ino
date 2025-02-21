@@ -93,13 +93,20 @@ void handleN2S1() {
   // удержание. если флаг о включении возведен(т.е. он был выключен) включим весь свет в комнате,
   // иначе(если свет и так включен) выключаем весь свет в комнате, и даже тот за который не отвечаем
   if (N2_S1_but.isHolded()) {
+    if (N2_spots.rightNowOn) { // из тьмы в свет
       N2_spots.rightNowOn = 0; // убираем флаг мгновенного нажатия
-    //      тушим весь свет и отправляем режим ночь
-    N2_tracks.state = 0;
-    N2_spots.state = 0;
-    update_N2_Lamps();
-    update_N2_Track();
-    Serial.print("\n\n\t\tN2_S1_but  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
+      N2_tracks.state = 1;
+      N2_spots.state = 1;
+      update_N2_Lamps();
+      update_N2_Track();
+    } else { // из света в тьму 
+      //      тушим весь свет и отправляем режим ночь
+      N2_tracks.state = 0;
+      N2_spots.state = 0;
+      update_N2_Lamps();
+      update_N2_Track();
+      Serial.print("\n\n\t\tN2_S1_but  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
+    }
   }
 
   if (N2_S1_but.hasClicks())
@@ -114,17 +121,36 @@ void handleN2S1() {
   //    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
   //    Serial.println(value);                              // для примера выведем в порт
   //  }
+  update_N2_modbus();
 }//handleN4_s1
+
 
 void update_N2_Lamps() {
   if (N2_spots.state) {
+    ha[N2_LIGHTS] = 1;
     digitalWrite(N2_SP, N2_spots.lamp1);
     digitalWrite(N2_LED, N2_spots.lamp2);
   }
   else
   {
+    ha[N2_LIGHTS] = 0;
     digitalWrite(N2_SP, OFF);
     digitalWrite(N2_LED, OFF);
 
   }
 }//update_N2_Lamps
+
+
+// обработка modbus
+//N2_LIGHTS 32
+void update_N2_modbus() {
+  if ((N2_spots.state == 0) && (ha[N2_LIGHTS] == 1)) { //свет потушен а с ha пришло - включить
+    N2_spots.state = 1;
+    update_N2_Lamps();
+  }
+  else if ((N2_spots.state == 1) && (ha[N2_LIGHTS] == 0)) { //включенный свет надо потушить
+    N2_spots.state = 0;
+    update_N2_Lamps();
+
+  }
+}//update_N2_modbus()

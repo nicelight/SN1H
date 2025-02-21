@@ -1,0 +1,477 @@
+! $$$ Model: Keenetic Giga
+! $$$ Version: 2.06.1
+! $$$ Agent: http/rci
+! $$$ Md5 checksum: 00410f5e0f2b7b7b72aea1a830b38311
+! $$$ Last change: Fri, 21 Feb 2025 10:30:37 GMT
+! $$$ Username: admin
+
+system
+    set net.ipv4.ip_forward 1
+    set net.ipv4.tcp_fin_timeout 30
+    set net.ipv4.tcp_keepalive_time 120
+    set net.ipv4.neigh.default.gc_thresh1 256
+    set net.ipv4.neigh.default.gc_thresh2 1024
+    set net.ipv4.neigh.default.gc_thresh3 2048
+    set net.ipv6.neigh.default.gc_thresh1 256
+    set net.ipv6.neigh.default.gc_thresh2 1024
+    set net.ipv6.neigh.default.gc_thresh3 2048
+    set net.netfilter.nf_conntrack_tcp_timeout_established 1200
+    set net.netfilter.nf_conntrack_max 32768
+    set vm.swappiness 60
+    set vm.overcommit_memory 0
+    set vm.vfs_cache_pressure 1000
+    set dev.usb.force_usb2 0
+    set net.ipv6.conf.all.forwarding 1
+    clock timezone Asia/Dushanbe
+    domainname WORKGROUP
+    hostname Keenetic-3751
+    caption default
+    ndss dump-report no disable
+!
+ntp server 0.pool.ntp.org
+ntp server 1.pool.ntp.org
+ntp server 2.pool.ntp.org
+ntp server 3.pool.ntp.org
+known host -homeassistant 02:be:b5:d4:d1:60
+known host ha_os 02:fe:7c:2c:c2:41
+known host Camera-177-Gate 04:03:12:62:d4:b4
+known host WLED-N4 08:d1:f9:ca:49:a0
+known host WLED-N1 08:d1:f9:cc:23:f8
+known host WLED-N3 08:d1:f9:d0:2b:80
+known host WLED-N2 08:d1:f9:dd:71:20
+known host esp114-env 08:d1:f9:de:04:54
+known host wled-room1-118 08:d1:f9:de:1a:38
+known host Olimhon_1 1a:11:f6:fc:0e:39
+known host esp144-env 24:dc:c3:a6:bd:c8
+known host WLED-N6 24:dc:c3:a7:2e:d8
+known host WLED-N5 24:dc:c3:a7:48:94
+known host esp124-env 30:c6:f7:44:0a:44
+known host "\xd0\x90\xd0\xb1\xd0\xb4\xd1\x83\xd1\x80\xd0\xb0\xd1\x85\xd0\xb8\xd0\xbc-\xd0\xbf\xd1\x80\xd0\xbe\xd1\x80\xd0\xb0\xd0\xb1" 3c:dc:bc:c3:06:4b
+known host esp32-cam-182 40:22:d8:06:37:14
+known host espCam-183 40:22:d8:06:39:0c
+known host SamsungTV 6c:70:cb:d7:b2:8b
+known host vacuumcleaner-dreame-r2449a 70:c9:32:58:9e:b0
+known host brat-plitochnik 8e:23:82:df:92:4e
+known host Aziz-otdelo4nik 9a:1f:af:b2:05:ba
+known host djelle-voice-satellite a0:a3:b3:28:69:50
+known host WLED-N7 a8:42:e3:ca:a4:b4
+known host "Sergeys Tecno LI6" b2:68:a0:d9:b3:cd
+known host yandex-station-lite b8:87:6e:71:a7:aa
+known host Samsung-washing-mashine1 b8:b4:09:a5:76:22
+known host Olimhon_2 ba:f8:40:88:f1:e9
+known host "Acer NITRO 5 Laptop" c8:58:c0:92:17:29
+known host i7 d8:43:ae:bf:1f:c3
+known host esp154-env e0:5a:1b:60:0e:10
+isolate-private
+user admin
+    password md5 3c7daa971d98d1308e257f202ddbd22a
+    password nt 71fbb3059b6bc1317700cd4d00b6efc6
+    tag cli
+    tag http
+    tag cifs
+    tag printers
+    tag webdav
+    tag http-proxy
+!
+user test
+    password md5 f04da4169ff65cff94b17e4849b33959
+    password nt 0cb6948805f797bf2a82807973b89537
+    tag http-proxy
+!
+dyndns profile _WEBADMIN
+!
+interface GigabitEthernet0
+    up
+!
+interface GigabitEthernet0/0
+    rename 1
+    switchport mode access
+    switchport access vlan 1
+    up
+!
+interface GigabitEthernet0/1
+    rename 2
+    switchport mode access
+    switchport access vlan 1
+    up
+!
+interface GigabitEthernet0/2
+    rename 3
+    switchport mode access
+    switchport access vlan 1
+    up
+!
+interface GigabitEthernet0/3
+    rename 4
+    switchport mode access
+    switchport access vlan 1
+    up
+!
+interface GigabitEthernet0/Vlan1
+    description "Home VLAN"
+    security-level private
+    ip dhcp client dns-routes
+    ip name-servers
+    up
+!
+interface GigabitEthernet0/Vlan3
+    security-level public
+    ip dhcp client dns-routes
+    ip name-servers
+    up
+!
+interface GigabitEthernet1
+    rename ISP
+    description "\xd0\x9f\xd0\xbe\xd0\xb4\xd0\xba\xd0\xbb\xd1\x8e\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 Ethernet"
+    mac address factory wan
+    security-level public
+    ip address dhcp
+    ip dhcp client hostname Keenetic-3751
+    ip dhcp client dns-routes
+    ip mtu 1500
+    ip global 700
+    ip name-servers
+    igmp upstream
+    ipv6 no name-servers
+    up
+!
+interface GigabitEthernet1/0
+    rename 0
+    up
+!
+interface WifiMaster0
+    country-code RU
+    compatibility BGN+AX
+    channel 13
+    channel width 20
+    tx-burst
+    rekey-interval 86400
+    beamforming explicit
+    vht
+    downlink-mumimo
+    uplink-mumimo
+    spatial-reuse
+    up
+!
+interface WifiMaster0/AccessPoint0
+    rename AccessPoint
+    description "Wi-Fi access point"
+    mac access-list type none
+    security-level private
+    wps
+    wps no auto-self-pin
+    authentication wpa-psk ns3 wfLpz9QTumEbbZX2ZHn9bEewCZ/0mouwT4sIXw4lSzsL8z0C
+    encryption enable
+    encryption wpa
+    encryption wpa2
+    ip dhcp client dns-routes
+    ip name-servers
+    ssid nicelight
+    wmm
+    rrm
+    ft mdid J_
+    ft enable
+    up
+!
+interface WifiMaster0/AccessPoint1
+    rename GuestWiFi
+    description "Guest access point"
+    mac access-list type none
+    security-level protected
+    authentication wpa-psk ns3 6gEHGQ0yKnDovxO9m94GrtN3
+    encryption enable
+    encryption wpa
+    encryption wpa2
+    ip dhcp client dns-routes
+    ip name-servers
+    ssid maxim
+    wmm
+    rrm
+    up
+!
+interface WifiMaster0/AccessPoint2
+    mac access-list type none
+    security-level private
+    ip dhcp client dns-routes
+    ip name-servers
+    down
+!
+interface WifiMaster0/AccessPoint3
+    mac access-list type none
+    security-level private
+    ip dhcp client dns-routes
+    ip name-servers
+    down
+!
+interface WifiMaster0/AccessPoint4
+    mac access-list type none
+    security-level private
+    ip dhcp client dns-routes
+    down
+!
+interface WifiMaster0/AccessPoint5
+    mac access-list type none
+    security-level private
+    ip dhcp client dns-routes
+    down
+!
+interface WifiMaster0/AccessPoint6
+    mac access-list type none
+    security-level private
+    ip dhcp client dns-routes
+    down
+!
+interface WifiMaster0/WifiStation0
+    security-level public
+    encryption disable
+    ip dhcp client dns-routes
+    ip name-servers
+    down
+!
+interface WifiMaster1
+    country-code RU
+    compatibility AN+AC+AX
+    channel width 40-above/80
+    power 75
+    tx-burst
+    rekey-interval 86400
+    beamforming explicit
+    downlink-mumimo
+    uplink-mumimo
+    spatial-reuse
+    up
+!
+interface WifiMaster1/AccessPoint0
+    rename AccessPoint_5G
+    description "5GHz Wi-Fi access point"
+    mac access-list type none
+    security-level private
+    wps
+    wps no auto-self-pin
+    authentication wpa-psk ns3 wfLpz9QTumEbbZX2ZHn9bEewCZ/0mouwT4sIXw4lSzsL8z0C
+    encryption enable
+    encryption wpa
+    encryption wpa2
+    ip dhcp client dns-routes
+    ip name-servers
+    ssid nicelight
+    wmm
+    rrm
+    ft mdid J_
+    ft enable
+    follow AccessPoint
+    up
+!
+interface WifiMaster1/AccessPoint1
+    rename GuestWiFi_5G
+    description "5GHz Guest access point"
+    mac access-list type none
+    security-level protected
+    authentication wpa-psk ns3 6gEHGQ0yKnDovxO9m94GrtN3
+    encryption enable
+    encryption wpa
+    encryption wpa2
+    ip dhcp client dns-routes
+    ip name-servers
+    ssid maxim
+    wmm
+    rrm
+    follow GuestWiFi
+    up
+!
+interface WifiMaster1/AccessPoint2
+    mac access-list type none
+    security-level private
+    ip dhcp client dns-routes
+    ip name-servers
+    down
+!
+interface WifiMaster1/AccessPoint3
+    mac access-list type none
+    security-level private
+    ip dhcp client dns-routes
+    ip name-servers
+    down
+!
+interface WifiMaster1/AccessPoint4
+    mac access-list type none
+    security-level private
+    ip dhcp client dns-routes
+    down
+!
+interface WifiMaster1/AccessPoint5
+    mac access-list type none
+    security-level private
+    ip dhcp client dns-routes
+    down
+!
+interface WifiMaster1/AccessPoint6
+    mac access-list type none
+    security-level private
+    ip dhcp client dns-routes
+    down
+!
+interface WifiMaster1/WifiStation0
+    security-level public
+    encryption disable
+    ip dhcp client dns-routes
+    ip name-servers
+    down
+!
+interface Bridge0
+    rename Home
+    description "Home network"
+    inherit GigabitEthernet0/Vlan1
+    include AccessPoint
+    include AccessPoint_5G
+    mac access-list type none
+    security-level private
+    ip address 192.168.10.1 255.255.255.0
+    ip dhcp client dns-routes
+    ip name-servers
+    igmp downstream
+    band-steering
+    iapp key ns3 yKlY6wzNyyUWNDIyIlKBPK+HZDRiXPEiBz51ffN0RLVHdPDa
+    up
+!
+interface Bridge1
+    rename Guest
+    description "Guest network"
+    traffic-shape rate 1024
+    include GigabitEthernet0/Vlan3
+    include GuestWiFi
+    include GuestWiFi_5G
+    mac access-list type none
+    peer-isolation
+    security-level protected
+    ip address 10.1.30.1 255.255.255.0
+    ip dhcp client dns-routes
+    ip name-servers
+    iapp key ns3 kxOc2GCRiCuI+GwxlOZvU9A88xz5xNy6QguD30kgiLRKKvhx
+    up
+!
+ip dhcp pool _WEBADMIN
+    range 192.168.10.5 192.168.10.104
+    lease 25200
+    bind Home
+    enable
+!
+ip dhcp pool _WEBADMIN_GUEST_AP
+    range 10.1.30.33 10.1.30.152
+    lease 25200
+    bind Guest
+    enable
+!
+ip dhcp host 04:03:12:62:d4:b4 192.168.10.177
+ip dhcp host 6c:70:cb:d7:b2:8b 192.168.10.84
+ip http port 80
+ip http security-level public
+ip http lockout-policy 5 15 3
+ip http ssl enable
+ip http ssl redirect
+ip http proxy i7
+    upstream http d8:43:ae:bf:1f:c3 8006
+    domain ndns
+    ssl redirect
+    security-level public
+    auth
+!
+ip http proxy ha
+    upstream https 02:fe:7c:2c:c2:41 8123
+    domain ndns
+    ssl redirect
+    security-level public
+    auth
+!
+ip http webdav
+    security-level public
+!
+ip nat Home
+ip nat Guest
+ip telnet
+    port 23
+    security-level private
+    lockout-policy 5 15 3
+!
+ip hotspot
+    policy Guest permit
+    policy Home permit
+    host 9a:1f:af:b2:05:ba permit
+    host 8e:23:82:df:92:4e permit
+    host 40:22:d8:06:37:14 permit
+    host 40:22:d8:06:37:14 priority 6
+    host b2:68:a0:d9:b3:cd permit
+    host b2:68:a0:d9:b3:cd priority 6
+    host c8:58:c0:92:17:29 permit
+    host 1a:11:f6:fc:0e:39 permit
+    host ba:f8:40:88:f1:e9 permit
+    host 08:d1:f9:de:1a:38 permit
+    host 08:d1:f9:de:04:54 permit
+    host 08:d1:f9:de:04:54 priority 6
+    host 02:be:b5:d4:d1:60 permit
+    host 02:be:b5:d4:d1:60 priority 6
+    host a8:42:e3:ca:a4:b4 permit
+    host a8:42:e3:ca:a4:b4 priority 6
+    host 40:22:d8:06:39:0c permit
+    host 08:d1:f9:ca:49:a0 permit
+    host 08:d1:f9:ca:49:a0 priority 6
+    host 08:d1:f9:dd:71:20 permit
+    host 08:d1:f9:dd:71:20 priority 6
+    host 3c:dc:bc:c3:06:4b permit
+    host 3c:dc:bc:c3:06:4b priority 6
+    host d8:43:ae:bf:1f:c3 permit
+    host 02:fe:7c:2c:c2:41 permit
+    host 02:fe:7c:2c:c2:41 priority 6
+    host 24:dc:c3:a7:48:94 permit
+    host 70:c9:32:58:9e:b0 permit
+    host 70:c9:32:58:9e:b0 priority 6
+    host 04:03:12:62:d4:b4 permit
+    host 04:03:12:62:d4:b4 priority 6
+    host 24:dc:c3:a7:2e:d8 permit
+    host 08:d1:f9:d0:2b:80 permit
+    host 08:d1:f9:cc:23:f8 permit
+    host 6c:70:cb:d7:b2:8b permit
+    host 6c:70:cb:d7:b2:8b priority 4
+    host e0:5a:1b:60:0e:10 permit
+    host e0:5a:1b:60:0e:10 priority 6
+    host 30:c6:f7:44:0a:44 permit
+    host 24:dc:c3:a6:bd:c8 permit
+    host a0:a3:b3:28:69:50 permit
+    host b8:87:6e:71:a7:aa permit
+    host b8:b4:09:a5:76:22 permit
+!
+ipv6 subnet Default
+    bind Home
+    mode slaac
+    prefix length 64
+    number 0
+!
+ipv6 local-prefix default
+ppe software
+ppe hardware
+upnp lan Home
+service dhcp
+service dns-proxy
+service igmp-proxy
+service http
+service cifs
+service telnet
+service ntp
+service upnp
+cifs
+    automount
+    permissive
+!
+dns-proxy
+    rebind-protect auto
+!
+mdns
+    reflector disable
+!
+easyconfig disable
+components
+    auto-update disable
+    auto-update channel stable
+!
+cloud control2 security-level public
+!

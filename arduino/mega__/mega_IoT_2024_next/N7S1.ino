@@ -29,6 +29,7 @@ void handleN7S1() {
     if (!N7_spots.state) {
       N7_spots.state = 1; // включаем
       N7_spots.rightNowOn = 1;// возводим флаг, что произошло мгновенное включение
+
       update_N7_Lamps(); // зажжем нужные лампы
       Serial.println("\n N7_S_GATE_but Press");
       // обновить модбас
@@ -143,6 +144,8 @@ void handleN7S1() {
   //    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
   //    Serial.println(value);                              // для примера выведем в порт
   //  }
+
+  update_N7_modbus(); // обработка модбаса
 }//handleN7_s1
 
 
@@ -150,11 +153,20 @@ void update_N7_Lamps() {
   if (N7_spots.state) {
     digitalWrite(N7_SP, N7_spots.lamp1);
     digitalWrite(N7_LED, N7_spots.lamp2);
+    // обновляем состояние для модбаса
+    // инвертированные состояния, так как реле нулем включаются
+    ha[N7_LIGHTS] = 1;
+    ha[N7_SP] = N7_spots.lamp1;
+    ha[N7_LED] = N7_spots.lamp2;
   }
   else
   {
     digitalWrite(N7_SP, OFF);
     digitalWrite(N7_LED, OFF);
+    // обновляем состояние для модбаса
+    ha[N7_LIGHTS] = 0;
+    ha[N7_SP] = OFF;
+    ha[N7_LED] = OFF;
   }
 }//update_N7_Lamps
 //
@@ -162,11 +174,26 @@ void update_N7_Lamps() {
 //
 
 
+void update_N7_modbus() {
+  if ((N7_spots.state == 0) && (ha[N7_LIGHTS] == 1)) { //свет потушен а с ha пришло - включить
+    N7_spots.state = 1;
+    update_N7_Lamps();
+  }
+  else if ((N7_spots.state == 1) && (ha[N7_LIGHTS] == 0)) { //включенный свет надо потушить
+    N7_spots.state = 0;
+    update_N7_Lamps();
+    
+  }
+}//update_N7_modbus()
+
+
 void pirN7() {
   statePIR7 = digitalRead(N7_SENS_PIR);
   if (each100msPirN7.ready()) { // каждых 100 мс
     if (statePIR7 && !N7_spots.state) { // сработал датчик и свет не горел
       digitalWrite(N7_SP, ON);
+      ha[N7_LED] = ON;
+
       if (!startPirLightN7) {
         startPirLightN7 = 1;
       }
@@ -181,6 +208,7 @@ void pirN7() {
     if (each5MinForN7.ready()) {
       if (!N7_spots.state && startPirLightN7) { // вышел таймаут служения светом от сенсора и за это время не произошло включения с кнопки
         digitalWrite(N7_SP, OFF);
+        ha[N7_LED] = OFF;
       }
       startPirLightN7 = 0;
     }

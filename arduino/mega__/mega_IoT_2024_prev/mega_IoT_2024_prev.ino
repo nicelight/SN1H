@@ -5,67 +5,118 @@
 #include <ModbusRTUSlave.h>
 #include <EEManager.h>
 
+#include "PCF8575.h"  // https://github.com/xreef/PCF8575_library
+
+// Set i2c address
+PCF8575 pcf8575(0x20);
+
+
 #define DEBUG
 
-// сенсоры
-#define N1_SENS1 A0 // первая кнопка у двери детской
-#define N2_SENS1 A1
-#define N3_SENS1 A2
-#define N4_SENS1 A10
+//////////////////////////////////// сенсоры //////////////////////////////////
+#define N1_SENS1 A0 // первая кнопка у двери детской,дублируется у кровати
 
-//34 пин свободен , можно откинуть , идет в датчик к 33му зеленым
+#define N2_SENS_TRACK A5
+#define N2_SENS_SPOT A6
+
+#define N3_SENS1 A7
+#define N3_SENS_PIR A8
+
+#define N4_SENS_TRACK A15
+#define N4_SENS_PLANSHET A10
+#define N4_SENS_KITCHEN_TRACK A12 // две кнопки на кухонной зоне, на одном проводе
+#define N4_SENS_KITCHEN A13
+#define N4_SENS_MAMA A11
+#define N4_SENS_WINDOW A14
+#define N4_SENS_PIR 32
+
+#define N5_SENS1 A2 //  у двери, дублируется у кровати
+
 #define N6_SENS1 33
-#define N6_SENS_PIR 35
+//#define N6_SENS_PIR 35 пин свободен. PIR перекинул на зеленый пин 34
+#define N6_SENS_PIR 34
 
-
-#define BUTTON_5_PIN A4 // нужно для GButton
-#define BUTTON_6_PIN A5
-#define BUTTON_7_PIN A6
-#define BUTTON_8_PIN A7
-#define BUTTON_9_PIN A8
-#define BUTTON_10_PIN A9
+#define N7_SENS1 36
+#define N7_SENS_PIR 37
+#define N7_GATE A1 // на проводе обозначен как DOOR 2
 
 
 
-//// экзекьюторы
+////////////////////////////////// актуаторы //////////////////////////////////
+//#define A 9
+//#define B 8
+//#define C 7
+//#define D 6
+//#define E 14
+//#define F 15
+//#define G 22
+//#define H 23
+
 #define N1_SP1 41
 #define N1_SP2 40
 
-#define N2_SP
-#define N2_TRACK
+#define N2_SP 39
+#define N2_LED 42
+//#define N2_TRACK 38 // старый на черных твердотелках, сейчас N5_SHELF
+#define N2_TRACK 26 // бело-оранжевый
 
-#define N3_SP
-#define N3_LED
+#define N3_SP 43
+#define N3_LED 44
+#define N3_FAN 6
 
 #define N4_SP1 45
 #define N4_SP2 46
+#define N4_MEAL 49
 
-#define N5_SP1
-#define N5_SP2
+//#define N4_TR1 47 // старый на черных твердотелочках, сейчас свободен ( или сгоревший)
+//#define N4_TR2 48 // старый на черных твердотелочках, сейчас свободен ( или сгоревший)
+#define N4_TR1 27 // оранженвый
+#define N4_TR2 28 // бело-зеленый
+
+//#define ЗЕЛЕНЫЙ 29
+//#define БЕЛОСИНИЙ 30
+//#define СИНИЙ 31
+
+#define N4_KITCH1 50
+#define N4_KITCH2 51
+
+#define N4_MUS 53
+#define N4_ERM 52
+
+#define N5_SP1 5
+#define N5_SP2 4
+#define N5_BED 3
+//#define N5_SHELF 2 // твердотелка сгорела, вздулась
+#define N5_SHELF 38
 
 #define N6_SP 10
 #define N6_LED 11
+#define N6_FAN 7
 
-//
-//#define LAMP_5_PIN 2
-//#define LAMP_6_PIN 2
-//#define LAMP_7_PIN 2
-//#define LAMP_8_PIN 2
-//#define LAMP_9_PIN 2
-//#define LAMP_10_PIN 2
-//#define LAMP_11_PIN 2
-//#define LAMP_12_PIN 2
-//#define LAMP_13_PIN 2
-//#define LAMP_14_PIN 2
-//#define LAMP_15_PIN 2
-//#define LAMP_16_PIN 2
-//#define LAMP_17_PIN 2
-//#define LAMP_18_PIN 2
-//#define LAMP_19_PIN 2
-//#define LAMP_20_PIN 2
+#define N7_SP 12
+#define N7_LED 24
+//#define свободный 25
 
 #define ON 0 // релевключается нулем 
 #define OFF 1
+
+GButton N1_S1_but(N1_SENS1);
+
+GButton N2_TRACK_but(N2_SENS_TRACK);
+GButton N2_S1_but(N2_SENS_SPOT);
+
+GButton N3_S1_but(N3_SENS1);
+
+GButton N4_S_TRACK_but(N4_SENS_TRACK);
+GButton N4_S1_but(N4_SENS_PLANSHET);
+GButton N4_S_KITCHEN_but(N4_SENS_KITCHEN);
+GButton N4_S_KITH_TRACK_but(N4_SENS_KITCHEN_TRACK);
+GButton N4_S_MAMA_but(N4_SENS_MAMA);
+GButton N4_S_WINDOW_but(N4_SENS_WINDOW);
+
+GButton N5_S1_but(N5_SENS1);
+GButton N6_S1_but(N6_SENS1);
+GButton N7_S_GATE_but(N7_SENS1);
 
 
 // по одинарному нажатию лампы включаются \ выключаются
@@ -79,61 +130,125 @@ struct LampTriple
   bool rightNowOn;  // маякует о том, что уже было включение ламп, чтобы повторно не включать
   uint8_t mode; // режим ( первая лампа включена, вторая включена или обе включены)
 };
-
-LampTriple N1_spots = {OFF, OFF, 0, 0}; // I, II, III лампа, state, mode
-LampTriple N2_spots = {OFF, OFF, OFF, 0, 0};
-LampTriple N3_spots = {OFF, OFF, OFF, 0, 0};
-LampTriple N4_spots = {OFF, OFF, OFF, 0, 0};
-LampTriple N6_spots = {OFF, OFF, OFF, 0, 0};
-
-LampTriple button5_struct = {OFF, OFF, OFF, 0, 0};
-LampTriple button6_struct = {OFF, OFF, OFF, 0, 0};
-LampTriple button7_struct = {OFF, OFF, OFF, 0, 0};
-LampTriple button8_struct = {OFF, OFF, OFF, 0, 0};
-LampTriple button9_struct = {OFF, OFF, OFF, 0, 0};
-LampTriple button10_struct = {OFF, OFF, OFF, 0, 0};
-
-GButton N1_S1_but(N1_SENS1);
-GButton N2_S1_but(N2_SENS1);
-GButton N3_S1_but(N3_SENS1);
-GButton N4_S1_but(N4_SENS1);
-
-GButton N6_S1_but(N6_SENS1);
-
-GButton button5(BUTTON_5_PIN);
-GButton button7(BUTTON_7_PIN);
-GButton button8(BUTTON_8_PIN);
-GButton button9(BUTTON_9_PIN);
-GButton button10(BUTTON_10_PIN);
-
+LampTriple N1_spots = {ON, ON, OFF, 0, 0, 0}; // I, II, III лампа, state, rightNowOn, mode
+LampTriple N2_spots = {ON, ON, OFF, 0, 0, 0};
+LampTriple N2_tracks = {ON, ON, OFF, 0, 0, 0};
+LampTriple N3_spots = {ON, ON, OFF, 0, 0, 0};
+LampTriple N4_spots = {ON, ON, OFF, 0, 0, 0};
+LampTriple N4_museums = {ON, ON, OFF, 0, 0, 0};
+LampTriple N4_kitchen = {ON, ON, OFF, 0, 0, 0};
+LampTriple N4_tracks = {ON, ON, OFF, 0, 0, 0};
+LampTriple N5_spots = {ON, ON, OFF, 0, 0, 0};
+LampTriple N6_spots = {ON, ON, OFF, 0, 0, 0};
+LampTriple N7_spots = {ON, ON, OFF, 0, 0, 0};
 // создаем в памяти ЕЕПРОМ блоки для запоминания структур света
 EEManager EE_N1_spots(N1_spots);
 EEManager EE_N2_spots(N2_spots);
+EEManager EE_N2_tracks(N2_tracks);
 EEManager EE_N3_spots(N3_spots);
 EEManager EE_N4_spots(N4_spots);
-
+EEManager EE_N4_museums(N4_museums);
+EEManager EE_N4_kitchen(N4_kitchen);
+EEManager EE_N4_tracks(N4_tracks);
+EEManager EE_N5_spots(N5_spots);
 EEManager EE_N6_spots(N6_spots);
+EEManager EE_N7_spots(N7_spots);
 
 //ModbusRTUSlave modbus(Serial2); // было Serial2 но выглядит что это ошибка
 ModbusRTUSlave modbus(Serial1);
-
-Timer each100ms(100); // для отладки 100 мс
-byte testPIRS = 0, prevtestpirs = 0; //для отладки pir слушаем
-
-
 bool coils[20];
 uint16_t holdingRegisters[15];
 
 LED builtinLed(13, 3000, 3, 300, 100); //каждые 3000 милисек мигаем 3 раза каждых 300 мс, время горения 100 мсек
 // Timer after10sec(10000);
 
-void setup() {
 
+//////////       T E S T S
+Timer each100ms(100); // для отладки 100 мс
+//bool starttestLightN3 = 0;
+//bool starttestLightN4 = 0;
+//bool starttestLightN6 = 0;
+//byte testPIR3 = 0, prevtestpir3 = 0; //для отладки pir слушаем
+//byte testPIR4 = 0, prevtestpir4 = 0; //для отладки pir слушаем
+//byte testPIR6 = 0, prevtestpir6 = 0; //для отладки pir слушаем
+//
+
+
+// PIR датчик в корридоре
+Timer each100msPirN7(100ul); // опрос датчика в корридоре каждыъ 100 мс
+Timer each5MinForN7(300000ul); // по датчику включим свет в корридоре на 5 мин
+bool startPirLightN7 = 0;
+byte statePIR7 = 0, prevStatepir7 = 0; //для pir в корридоре
+
+// PIR датчик в ванной
+Timer each100msPirN6(100ul); // опрос датчика в корридоре каждыъ 100 мс
+Timer each5MinForN6(300000ul); // по датчику включим свет в ванной на 5 мин
+bool startPirLightN6 = 0;
+byte statePIR6 = 0, prevStatepir6 = 0; //для pir в корридоре
+
+// PIR датчик в мастербасрум
+Timer each100msPirN3(100ul); // опрос датчика в корридоре каждыъ 100 мс
+Timer each5MinForN3(300000ul); // по датчику включим свет в ванной на 5 мин
+bool startPirLightN3 = 0;
+byte statePIR3 = 0, prevStatepir3 = 0; //для pir в корридоре
+
+Timer each10minFanN3(600000ul); // 10 минут вытяжке
+byte fanN3state = 0;  // автомат
+bool N3_fan_state = 0; // состояния вытяжек в туалетах
+
+Timer each10minFanN6(600000ul); // 10 минут вытяжке
+byte fanN6state = 0; // автомат
+bool N6_fan_state = 0; // состояния вытяжек в туалетах
+
+bool weAreAtHome = 1; // флаг о том что кто то есть дома, отрабатывает на корридорном выключателе
+
+uint32_t prevMs = 0;
+//
+//
+//
+
+void updateAllLights() {
+  update_N1_Lamps();
+  delay(100);
+  update_N2_Lamps();
+  delay(100);
+  update_N2_Track();
+  delay(100);
+  update_N3_Lamps();
+  delay(100);
+  update_N2_Track();
+  delay(100);
+  update_N4_museums();
+  delay(100);
+  update_N4_Lamps();
+  delay(100);
+  update_N4_Tracks();
+  delay(100);
+  update_N5_Lamps();
+  delay(100);
+  update_N6_Lamps();
+  delay(100);
+  update_N7_Lamps();
+}
+//
+//
+//
+
+void setup() {
   Serial.begin(115200);
   Serial.setTimeout(100);
   Serial.println("\n\n");
-  builtinLed.setPeriod(3000, 1, 800, 800);
+  builtinLed.setPeriod(3000, 1, 800, 500); //каждые 3000 милисек мигаем 1 раз каждых 800 мс, время горения 500 мсек
   //  builtinLed.setPeriod(3000, 3, 300, 100);
+
+  // пины для включения клапанов и фанкоилов
+  for (int i = 0; i < 16; i++) {
+    pcf8575.pinMode(i, OUTPUT);
+    pcf8575.digitalWrite(i, OFF);
+  }
+  pcf8575.begin();
+
+
   for (int i = 2; i <= 21; i++) {
     pinMode(i, OUTPUT);
     digitalWrite(i, OFF);
@@ -149,17 +264,24 @@ void setup() {
   for (int i = 32; i < 38; i++) pinMode(i, INPUT_PULLUP);
   for (int i = 54; i < 70; i++) pinMode(i, INPUT_PULLUP);
 
-  // ������������� ������
-  N1_S1_but.setDebounce(10);
-  N2_S1_but.setDebounce(10);
-  N3_S1_but.setDebounce(10);
-  N4_S1_but.setDebounce(10);
-  button5.setDebounce(10);
-  N6_S1_but.setDebounce(10);
-  button7.setDebounce(10);
-  button8.setDebounce(10);
-  button9.setDebounce(10);
-  button10.setDebounce(10);
+  //pinMode(N6_SENS_PIR, INPUT);
+  //pinMode(N6_SENS_PIR, INPUT);
+
+  // кнопки
+  N1_S1_but.setDebounce(20);
+  N2_TRACK_but.setDebounce(20);
+  N2_S1_but.setDebounce(20);
+
+  N3_S1_but.setDebounce(20);
+  N4_S_TRACK_but.setDebounce(20);
+  N4_S1_but.setDebounce(20);
+  N4_S_KITCHEN_but.setDebounce(20);
+  N4_S_KITH_TRACK_but.setDebounce(20);
+  N4_S_MAMA_but.setDebounce(20);
+  N4_S_WINDOW_but.setDebounce(20);
+  N5_S1_but.setDebounce(20);
+  N6_S1_but.setDebounce(20);
+  N7_S_GATE_but.setDebounce(20);
 
   // инициализация Modbus
   modbus.configureCoils(coils, 20);
@@ -167,91 +289,105 @@ void setup() {
   modbus.begin(99, 9600); // адрес устройства 99
 
   // EEManager
-  EE_N1_spots.begin(16, 'a');
-  EE_N2_spots.begin(EE_N1_spots.nextAddr(), 'a'); // следующий блок памяти по адресу за предыдущим
-  EE_N3_spots.begin(EE_N2_spots.nextAddr(), 'a');//следующий блок памяти по адресу за предыдущим
-  EE_N4_spots.begin(EE_N3_spots.nextAddr(), 'a');//следующий блок памяти по адресу за предыдущим
-  //  updateLamps(); // включим нужные лампы
+  EE_N1_spots.begin(16, 'b'); // Spot1, Spot2
+  EE_N2_spots.begin(EE_N1_spots.nextAddr(), 'a'); // следующий блок памяти по адресу за предыдущим. Spot, 12v
+  EE_N3_spots.begin(EE_N2_spots.nextAddr(), 'a');//следующий блок памяти по адресу за предыдущим. Spot, 12v
+  EE_N4_spots.begin(EE_N3_spots.nextAddr(), 'a');//следующий блок памяти по адресу за предыдущим. Spot1, Spot2, Meal
+  EE_N4_museums.begin(EE_N4_spots.nextAddr(), 'a');//следующий блок памяти по адресу за предыдущим. Ermitage, Museum
+  EE_N4_kitchen.begin(EE_N4_museums.nextAddr(), 'a');//следующий блок памяти по адресу за предыдущим. Kitchen1, Kitchen2
+  EE_N4_tracks.begin(EE_N4_kitchen.nextAddr(), 'a');//следующий блок памяти по адресу за предыдущим. Track1, Track2
+  EE_N5_spots.begin(EE_N4_tracks.nextAddr(), 'b');//следующий блок памяти по адресу за предыдущим. Spot1, Spot2, bed
+  EE_N6_spots.begin(EE_N5_spots.nextAddr(), 'a');//следующий блок памяти по адресу за предыдущим. Spot, 12v
+  EE_N7_spots.begin(EE_N6_spots.nextAddr(), 'a');//следующий блок памяти по адресу за предыдущим. Spot, 12v
+  EE_N2_tracks.begin(EE_N7_spots.nextAddr(), 'a'); // следующий блок памяти по адресу за предыдущим. Track
 
-  // возможно не надо
+  // плавный тестовый запуск всего света при перезагрузке
+  //  digitalWrite(40 , 0);// N1 S1
+  //  delay(100);
+  //  digitalWrite(41 , 0);// N1 S2
+  //  delay(100);
+  //  digitalWrite(39 , 0);// N2 SP
+  //  delay(100);
+  //  digitalWrite(43 , 0);// N3 SP
+  //  delay(100);
+  //
+  //  digitalWrite(45, 0);// N4 SP1
+  //  delay(100);
+  //  digitalWrite(46, 0);// N4 SP2
+  //  delay(100);
+  //  //  digitalWrite(47, 1); // N4 T1
+  //  //  delay(100);
+  //  //  digitalWrite(48, 1);// N4 T2
+  //  //  delay(100);
+  //  //  digitalWrite(38, 1);// N2 T
+  //  //  delay(100);
+  //  digitalWrite(5 , 0);// N5 S1
+  //  delay(100);
+  //  digitalWrite(4 , 0);// N5 S2
+  //  delay(100);
+  //  digitalWrite(10 , 0);// N6 SP
+  //  delay(100);
+  //  digitalWrite(12 , 0);// N7 SP
+  //  delay(300);
 
-  digitalWrite(40 , 0);// N1 S1
-  delay(100);
-  digitalWrite(41 , 0);// N1 S2
-  delay(100);
-  digitalWrite(39 , 0);// N2 SP
-  delay(100);
-  digitalWrite(43 , 0);// N3 SP
-  delay(100);
+  //// тесты PCF8575
+  //    for (int i = 0; i < 16; i++) {
+  //    pcf8575.digitalWrite(i, ON);
+  //    delay(500);
+  //  }
 
-  digitalWrite(45, 0);// N4 SP1
-  delay(100);
-  digitalWrite(46, 0);// N4 SP2
-  delay(100);
-  //  digitalWrite(47, 1); // N4 T1
-  //  delay(100);
-  //  digitalWrite(48, 1);// N4 T2
-  //  delay(100);
-  //  digitalWrite(38, 1);// N2 T
-  //  delay(100);
-  digitalWrite(5 , 0);// N5 S1
-  delay(100);
-  digitalWrite(4 , 0);// N5 S2
-  delay(100);
-  digitalWrite(10 , 0);// N6 SP
-  delay(100);
-  digitalWrite(12 , 0);// N7 SP
-  delay(100);
+  updateAllLights();
+
 }//setup
 
-void loop()
-{
+
+
+
+void loop() {
+//  static byte i;
+//  Serial.println(i++);
+
   builtinLed.tick();
   //builtinLed.setPeriod(3000, 1, 800, 800);
   // опрос кнопок
-  N1_S1_but.tick();
-  N2_S1_but.tick();
-  N3_S1_but.tick();
-  N4_S1_but.tick();
-  button5.tick();
-  N6_S1_but.tick();
-  button7.tick();
-  button8.tick();
-  button9.tick();
-  button10.tick();
+
   // обновление энергонезависимой памяти
-  EE_N1_spots.tick();
-  EE_N2_spots.tick();
-  EE_N3_spots.tick();
-  EE_N4_spots.tick();
+  //  EE_N1_spots.tick();
+  //  EE_N2_spots.tick();
+  //  EE_N3_spots.tick();
+  //  EE_N4_spots.tick();
+  //  EE_N4_museums.tick();
+  //  EE_N4_kitchen.tick();
+  //  EE_N4_tracks.tick();
+  //  EE_N5_spots.tick();
+  //  EE_N6_spots.tick();
+  //  EE_N7_spots.tick();
 
-  EE_N6_spots.tick();
-
-  handleN4S1(); // функция обработчик для кнопки 1 в комнате 4
+  handleN1S1(); // обработчики бизнес логики кнопок
+  handleN2S1();
+  handleN2T();
+  handleN3S();
+  handleN4S1(); // кнопка 1 в комнате 4
+  pirN3();
+  fanN3();
+  handleN4TR();
+  handleN5S1();
   handleN6S1();
-  
-  //  handleTwoSpotsButtons(N1_vhod_but, N1_spots);
-  //  handleButtonPress(N2_vhod_and_kabinet_but, N2_spots);
-  // handleButtonPress(button3, button3_struct);
-  // handleButtonPress(button4, button4_struct);
-  // handleButtonPress(button5, button5_struct);
-  // handleButtonPress(button6, button6_struct);
-  // handleButtonPress(button7, button7_struct);
-  // handleButtonPress(button8, button8_struct);
-  // handleButtonPress(button9, button9_struct);
-  // handleButtonPress(button10, button10_struct);
+  pirN6();
+  fanN6();
+  handleN7S1();
+  pirN7();
 
   //  Modbus
-  modbus.poll();
-  makeCOM(); // отладка
-
-  testPirs();
-
+  // modbus.poll();
+  checkLoopTIme(5);   //если луп  дольше 10 милисек, печатаемся
+  //  makeCOM(); // ручное управление пинами, не надо уже
+  //  testPirs();
 }//loop
 
-// пример вызова функции со структурой в аргументе 
+// пример вызова функции со структурой в аргументе
 //  logButtonPress(N4_spots);
-//// пример передачи в функцию переменной по адресу из структуры 
+//// пример передачи в функцию переменной по адресу из структуры
 //void logButtonPress(const LampTriple &lamps)
 //{
 //  Serial.print(" L1: ");

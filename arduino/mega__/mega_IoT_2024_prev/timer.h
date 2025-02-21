@@ -12,10 +12,10 @@
 #include <Arduino.h>
 class Timer {
   public:
-    Timer(uint16_t nprd = 0) {
+    Timer(uint32_t nprd = 0) {
       setPeriod(nprd);
     }
-    void setPeriod(uint16_t nprd) {
+    void setPeriod(uint32_t nprd) {
       prd = nprd;
     }
     uint16_t getPeriod() {
@@ -32,9 +32,9 @@ class Timer {
       tmr = millis();
     }
     void force() {
-      tmr = millis()-prd;
+      tmr = millis() - prd;
     }
   private:
     uint32_t tmr = 0;
-    uint16_t prd = 0;
+    uint32_t prd = 0;
 };
