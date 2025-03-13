@@ -1,16 +1,3 @@
-#include "timer.h"
-#include "led.h"
-
-#include <GyverButton.h>
-#include <ModbusRTUSlave.h>
-#include <EEManager.h>
-
-#include "PCF8575.h"  // https://github.com/xreef/PCF8575_library
-
-// Set i2c address
-PCF8575 pcf8575(0x20);
-
-
 #define DEBUG
 
 //////////////////////////////////// сенсоры //////////////////////////////////
@@ -77,6 +64,24 @@ PCF8575 pcf8575(0x20);
 //#define БЕЛОСИНИЙ 30
 //#define СИНИЙ 31
 
+// для modbus номера коилов эквивалентные N1_lamps.state
+#define N1_LIGHTS 31 
+#define N2_LIGHTS 32
+#define N2_TRACK_LIGHTS 14
+#define N3_LIGHTS 33 
+//#define N3_FAN 6 // уже определена
+#define N4_LIGHTS 34 
+#define N4_TRACK_LIGHTS 15
+#define N4_KITCHEN_LIGHTS 16
+#define N4_MUSEUMS_LIGHTS 17
+#define N4_MEAL_LIGHTS 18
+#define N5_LIGHTS 35 
+#define N6_LIGHTS 36 
+//#define N6_FAN 7 // уже определена
+#define N7_LIGHTS 37
+
+
+
 #define N4_KITCH1 50
 #define N4_KITCH2 51
 
@@ -99,6 +104,47 @@ PCF8575 pcf8575(0x20);
 
 #define ON 0 // релевключается нулем 
 #define OFF 1
+
+
+
+#include "timer.h"
+#include "led.h"
+
+//https://github.com/yaacov/ArduinoModbusSlave/blob/master/examples/minimum/minimum.ino
+#include <ModbusRTUSlave.h>
+// MODBUS PORT for RS485 communication
+// Serial1 port RX1=19=RO, TX1=18=DI,to use for RS485 communication
+//RE_DE = 0 RECIEVE
+//RE_DE = 1 TRANSMIT
+#define DE_PIN 25 // 16 не работает, 17 работал вроде
+#define RS485_SERIAL Serial1
+#define MODBUS_BAUD 9600
+#define SLAVE_ID 10
+// Serial1 port RX1=19=RO, TX1=18=DI,to use for RS485 communication
+ModbusRTUSlave modbus(RS485_SERIAL, DE_PIN);  // (Serial1, DEpin)
+
+
+const uint8_t numCoils = 54;
+bool ha[numCoils];
+//bool prevHa[numCoils];
+bool discreteInputs[2];
+uint16_t holdingRegisters[2];
+uint16_t inputRegisters[2];
+////// ModBus
+
+
+#include <GyverButton.h>
+#include <EEManager.h>
+
+//#include "PCF8575.h"  // https://github.com/xreef/PCF8575_library
+//// Set i2c address
+//PCF8575 pcf8575(0x20);
+//
+
+LED builtinLed(13, 3000, 3, 300, 100); //каждые 3000 милисек мигаем 3 раза каждых 300 мс, время горения 100 мсек
+// Timer after10sec(10000);
+
+
 
 GButton N1_S1_but(N1_SENS1);
 
@@ -154,14 +200,6 @@ EEManager EE_N5_spots(N5_spots);
 EEManager EE_N6_spots(N6_spots);
 EEManager EE_N7_spots(N7_spots);
 
-//ModbusRTUSlave modbus(Serial2); // было Serial2 но выглядит что это ошибка
-ModbusRTUSlave modbus(Serial1);
-bool coils[20];
-uint16_t holdingRegisters[15];
-
-LED builtinLed(13, 3000, 3, 300, 100); //каждые 3000 милисек мигаем 3 раза каждых 300 мс, время горения 100 мсек
-// Timer after10sec(10000);
-
 
 //////////       T E S T S
 Timer each100ms(100); // для отладки 100 мс
@@ -183,13 +221,11 @@ byte statePIR7 = 0, prevStatepir7 = 0; //для pir в корридоре
 // PIR датчик в ванной
 Timer each100msPirN6(100ul); // опрос датчика в корридоре каждыъ 100 мс
 Timer each5MinForN6(300000ul); // по датчику включим свет в ванной на 5 мин
-bool startPirLightN6 = 0;
 byte statePIR6 = 0, prevStatepir6 = 0; //для pir в корридоре
 
 // PIR датчик в мастербасрум
 Timer each100msPirN3(100ul); // опрос датчика в корридоре каждыъ 100 мс
 Timer each5MinForN3(300000ul); // по датчику включим свет в ванной на 5 мин
-bool startPirLightN3 = 0;
 byte statePIR3 = 0, prevStatepir3 = 0; //для pir в корридоре
 
 Timer each10minFanN3(600000ul); // 10 минут вытяжке
@@ -203,9 +239,12 @@ bool N6_fan_state = 0; // состояния вытяжек в туалетах
 bool weAreAtHome = 1; // флаг о том что кто то есть дома, отрабатывает на корридорном выключателе
 
 uint32_t prevMs = 0;
+
+
 //
 //
 //
+
 
 void updateAllLights() {
   update_N1_Lamps();
@@ -238,30 +277,33 @@ void setup() {
   Serial.begin(115200);
   Serial.setTimeout(100);
   Serial.println("\n\n");
-  builtinLed.setPeriod(3000, 1, 800, 500); //каждые 3000 милисек мигаем 1 раз каждых 800 мс, время горения 500 мсек
-  //  builtinLed.setPeriod(3000, 3, 300, 100);
+  modbus.configureDiscreteInputs(discreteInputs, 2);
+  modbus.configureHoldingRegisters(holdingRegisters, 2);
+  modbus.configureInputRegisters(inputRegisters, 2);
+  modbus.configureCoils(ha, numCoils);
+  modbus.begin(SLAVE_ID, MODBUS_BAUD);
 
-  // пины для включения клапанов и фанкоилов
-  for (int i = 0; i < 16; i++) {
-    pcf8575.pinMode(i, OUTPUT);
-    pcf8575.digitalWrite(i, OFF);
-  }
-  pcf8575.begin();
 
 
   for (int i = 2; i <= 21; i++) {
+    if (i == DE_PIN) continue; //пропустим пин DE для modbus
     pinMode(i, OUTPUT);
     digitalWrite(i, OFF);
   }
   for (int i = 22; i <= 31; i++) {
+    if (i == DE_PIN) continue; //пропустим пин DE для modbus
     pinMode(i, OUTPUT);
     digitalWrite(i, OFF);
   }
   for (int i = 38; i <= 53; i++) {
+    if (i == DE_PIN) continue; //пропустим пин DE для modbus
     pinMode(i, OUTPUT);
     digitalWrite(i, OFF);
   }
-  for (int i = 32; i < 38; i++) pinMode(i, INPUT_PULLUP);
+  for (int i = 32; i < 38; i++) {
+    if (i == DE_PIN) continue; //пропустим пин DE для modbus
+    pinMode(i, INPUT_PULLUP);
+  }
   for (int i = 54; i < 70; i++) pinMode(i, INPUT_PULLUP);
 
   //pinMode(N6_SENS_PIR, INPUT);
@@ -282,11 +324,6 @@ void setup() {
   N5_S1_but.setDebounce(20);
   N6_S1_but.setDebounce(20);
   N7_S_GATE_but.setDebounce(20);
-
-  // инициализация Modbus
-  modbus.configureCoils(coils, 20);
-  modbus.configureHoldingRegisters(holdingRegisters, 15); // unsigned 16 bit integer array of holding register values, number of holding registers
-  modbus.begin(99, 9600); // адрес устройства 99
 
   // EEManager
   EE_N1_spots.begin(16, 'b'); // Spot1, Spot2
@@ -341,13 +378,31 @@ void setup() {
 }//setup
 
 
-
+uint32_t prevcheckMs = 0;
 
 void loop() {
-//  static byte i;
-//  Serial.println(i++);
+  
+//  if (millis() - prevcheckMs  > 500) {
+//    prevcheckMs = millis();
+//    Serial.println();
+//    Serial.print(millis() >> 10);
+//    Serial.print("\tha[0] = ");
+//    Serial.print(ha[0]);
+//    Serial.print("\tha[1] = ");
+//    Serial.print(ha[1]);
+//    Serial.print("\tha[2] = ");
+//    Serial.print(ha[2]);
+//    Serial.print("\tha[36] = ");
+//    Serial.print(ha[36]);
+//    Serial.print("\tha[37] = ");
+//    Serial.print(ha[37]);
+//    Serial.print("\tha[38] = ");
+//    Serial.print(ha[38]);
+//    Serial.println();
+//
+//  }
+  modbus.poll();
 
-  builtinLed.tick();
   //builtinLed.setPeriod(3000, 1, 800, 800);
   // опрос кнопок
 
@@ -379,8 +434,7 @@ void loop() {
   pirN7();
 
   //  Modbus
-  // modbus.poll();
-  checkLoopTIme(5);   //если луп  дольше 10 милисек, печатаемся
+  checkLoopTIme(10);   //если луп  дольше 10 милисек, печатаемся
   //  makeCOM(); // ручное управление пинами, не надо уже
   //  testPirs();
 }//loop

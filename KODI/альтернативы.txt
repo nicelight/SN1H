@@ -1,0 +1,11 @@
+существует еще picoreplayer  
+можно прогуглить по запросу:
+picoreplayer home assistant
+https://smp-gadgets.blogspot.com/2021/07/diy-raspberry-pi-4-picoreplayer-part.html
+
+умный чувак рассказывает про music assistant в home assistant
+https://www.youtube.com/watch?v=fLqr65JQN_E
+
+
+plex media server 
+https://youtu.be/eu6IDFeyfwE

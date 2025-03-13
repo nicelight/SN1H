@@ -46,7 +46,9 @@ notify:
   - platform: telegram
     name: tg_notify
     chat_id: -1002453471178
-    
+
+ffmpeg:
+
   # It is possible to add multiple notifiers by using another chat_id
   # the example belows shows an additional notifier which sends messages to the bot which is added to a group
 #   - platform: telegram
@@ -55,16 +57,24 @@ notify:
     
     
     
-# switch:
-#   - platform: mqtt
-#     name: "1 MQTT Switch"
-#     command_topic: "test1/test2"
-#     payload_on: "on"
-#     payload_off: "off"
+# # пример создания якоря для использования в других местах
+# # Определяем entity_id в одном месте
+# default_light: &default_light "light.living_room"
+
+# automation:
+#   - alias: "Включение света"
+#     trigger:
+#       - platform: state
+#         entity_id: *default_light
+#         to: "on"
+#     action:
+#       - service: light.turn_on
+#         data:
+#           entity_id: *default_light
 
 #  modbus 
 modbus:
-  - name: modbus_USB0
+  - name: modbus_USB
     type: serial
     port: /dev/ttyUSB0
     baudrate: 9600
@@ -73,14 +83,266 @@ modbus:
     # parity: E // из за этой фигни в документации  долго не мог понять почему не работает
     parity: N
     stopbits: 1
-    delay: 0
+    # stopbits: 2 # default 1 . у чувака так , с другой библиотекой https://www.youtube.com/watch?v=x1uV6nRxry4&t=84s
+    delay: 1
     message_wait_milliseconds: 30
     timeout: 5
+    # модбас регистры освещений
     lights:
-      - name: "lightsss"
-        slave: 1 # адрес устроства
-        address: 0 # регистр устройства
+      - name: "ard_test_slave10_coil1"
+        slave: 10 # адрес устроства
+        address: 1 # регистр устройства
         write_type: coil
+        # command_on: 0 # инвертированные
+        # command_off: 1
+        verify:
+          delay: 100  # проверить запись через 100 мс.
+      - name: "n1_lights"
+        slave: 10
+        address: 31
+        write_type: coil
+      - name: "n2_lights"
+        slave: 10
+        address: 32
+        write_type: coil
+      - name: "n2_track"
+        slave: 10
+        address: 14
+        write_type: coil
+      - name: "n3_lights"
+        slave: 10
+        address: 33
+        write_type: coil
+      - name: "n4_lights"
+        slave: 10
+        address: 34
+        write_type: coil
+      - name: "n4_tracks"
+        slave: 10
+        address: 15
+        write_type: coil
+      - name: "n4_museums"
+        slave: 10
+        address: 17
+        write_type: coil
+      - name: "n5_lights"
+        slave: 10
+        address: 35
+        write_type: coil
+      - name: "n6_lights"
+        slave: 10
+        address: 36
+        write_type: coil
+      - name: "n7_lights"
+        slave: 10
+        address: 37
+        write_type: coil
+    # модбас свичи вытяжек, приточек и прочих релюх
+    switches:
+      - name: "n3_switch" # вытяжка в душевой
+        slave: 10
+        address: 6
+        write_type: coil
+      - name: "n6_switch" # вытяжка в ванной
+        slave: 10
+        address: 7
+        write_type: coil
+
+
+# Templates -  чтобы обернуть сущности modbus lights 
+# в норм форму для возможности придания им  алиасов 
+# и управлением с голосового помошника
+light:
+  - platform: template
+    lights:
+      tmpl_modbus_light_1:
+        friendly_name: "Детская_свет" # френдлинейм виден в сущностях
+        unique_id: "n1_light_tmpl"
+        value_template: "{{ is_state('light.n1_lights', 'on') }}"
+        turn_on:
+          service: light.turn_on
+          target:
+            entity_id: light.n1_lights
+        turn_off:
+          service: light.turn_off
+          target:
+            entity_id: light.n1_lights
+  - platform: template
+    lights:
+      tmpl_modbus_light_2:
+        friendly_name: "Спальня_свет"
+        unique_id: "n2_light_tmpl"
+        value_template: "{{ is_state('light.n2_lights', 'on') }}"
+        turn_on:
+          service: light.turn_on
+          target:
+            entity_id: light.n2_lights
+        turn_off:
+          service: light.turn_off
+          target:
+            entity_id: light.n2_lights
+  - platform: template
+    lights:
+      tmpl_modbus_track_2:
+        friendly_name: "Спальня_трек"
+        unique_id: "n2_track_tmpl"
+        value_template: "{{ is_state('light.n2_track', 'on') }}"
+        turn_on:
+          service: light.turn_on
+          target:
+            entity_id: light.n2_track
+        turn_off:
+          service: light.turn_off
+          target:
+            entity_id: light.n2_track
+  - platform: template
+    lights:
+      tmpl_modbus_light_3:
+        friendly_name: "Душевая_Свет"
+        unique_id: "n3_light_tmpl"
+        value_template: "{{ is_state('light.n3_lights', 'on') }}"
+        turn_on:
+          service: light.turn_on
+          target:
+            entity_id: light.n3_lights
+        turn_off:
+          service: light.turn_off
+          target:
+            entity_id: light.n3_lights
+  - platform: template
+    lights:
+      tmpl_modbus_light_4:
+        friendly_name: "Гостиная_свет"
+        unique_id: "n4_light_tmpl"
+        value_template: "{{ is_state('light.n4_lights', 'on') }}"
+        turn_on:
+          service: light.turn_on
+          target:
+            entity_id: light.n4_lights
+        turn_off:
+          service: light.turn_off
+          target:
+            entity_id: light.n4_lights
+  - platform: template
+    lights:
+      tmpl_modbus_tracks_4:
+        friendly_name: "Гостиная_треки"
+        unique_id: "n4_tracks_tmpl"
+        value_template: "{{ is_state('light.n4_tracks', 'on') }}"
+        turn_on:
+          service: light.turn_on
+          target:
+            entity_id: light.n4_tracks
+        turn_off:
+          service: light.turn_off
+          target:
+            entity_id: light.n4_tracks
+  - platform: template
+    lights:
+      tmpl_modbus_museums_4:
+        friendly_name: "Гостиная_музеи"
+        unique_id: "n4_museums_tmpl"
+        value_template: "{{ is_state('light.n4_museums', 'on') }}"
+        turn_on:
+          service: light.turn_on
+          target:
+            entity_id: light.n4_museums
+        turn_off:
+          service: light.turn_off
+          target:
+            entity_id: light.n4_museums
+  - platform: template
+    lights:
+      tmpl_modbus_light_5:
+        friendly_name: "Мамина_Свет"
+        unique_id: "n5_light_tmpl"
+        value_template: "{{ is_state('light.n5_lights', 'on') }}"
+        turn_on:
+          service: light.turn_on
+          target:
+            entity_id: light.n5_lights
+        turn_off:
+          service: light.turn_off
+          target:
+            entity_id: light.n5_lights
+  - platform: template
+    lights:
+      tmpl_modbus_light_6:
+        friendly_name: "Ванна_Свет"
+        unique_id: "n6_light_tmpl"
+        value_template: "{{ is_state('light.n6_lights', 'on') }}"
+        turn_on:
+          service: light.turn_on
+          target:
+            entity_id: light.n6_lights
+        turn_off:
+          service: light.turn_off
+          target:
+            entity_id: light.n6_lights
+  - platform: template
+    lights:
+      tmpl_modbus_light7:
+        friendly_name: "Прихожая_Свет"
+        unique_id: "n7_light_tmpl"
+        value_template: "{{ is_state('light.n7_lights', 'on') }}"
+        turn_on:
+          service: light.turn_on
+          target:
+            entity_id: light.n7_lights
+        turn_off:
+          service: light.turn_off
+          target:
+            entity_id: light.n7_lights
+
+
+#  переключатели вытяжок, приточек и прочего
+switch:
+  - platform: template
+    switches:
+      custom_modbus_switch_6:
+        friendly_name: "Вытяжка_Ванной_френдлинейм"
+        unique_id: "n6_switch_tmpl"
+        value_template: "{{ is_state('switch.n6_switch', 'on') }}"
+        turn_on:
+          service: switch.turn_on
+          target:
+            entity_id: switch.n6_switch
+        turn_off:
+          service: switch.turn_off
+          target:
+            entity_id: switch.n6_switch
+  - platform: template
+    switches:
+      custom_modbus_switch_3:
+        friendly_name: "Вытяжка_Душевая"
+        unique_id: "n3_switch_tmpl"
+        value_template: "{{ is_state('switch.n3_switch', 'on') }}"
+        turn_on:
+          service: switch.turn_on
+          target:
+            entity_id: switch.n3_switch
+        turn_off:
+          service: switch.turn_off
+          target:
+            entity_id: switch.n3_switch
+
+
+# # пытался сделать более правильно, чем выше но, что то не получилось
+# template: 
+#   - light:
+#       - name: 'tmpl_modbus_N3_lights'
+#         friendly_name: "Душевая_френдлинейм"
+#         unique_id: "n3_light_tmpl"
+#         value_template: "{{ is_state('light.n3_lights', 'on') }}"
+#         turn_on:
+#           service: light.turn_on
+#           target:
+#             entity_id: light.n3_lights
+#         turn_off:
+#           service: light.turn_off
+#           target:
+#             entity_id: light.n3_lights
+
 
 
     # описаны у павла https://psenyukov.ru/%D1%83%D0%BF%D1%80%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5-%D1%83%D1%81%D1%82%D1%80%D0%BE%D0%B9%D1%81%D1%82%D0%B2%D0%B0%D0%BC%D0%B8-%D1%87%D0%B5%D1%80%D0%B5%D0%B7-%D0%BF%D1%80%D0%BE%D1%82%D0%BE/
@@ -109,7 +371,6 @@ modbus:
     #     offset: 0
     #     precision: 1
     #     data_type: integer
-    
 
 # эта часть не работает после реконфигурации mqtt     
 # mqtt:
@@ -134,3 +395,24 @@ modbus:
 #       state_topic: "office/sensor1"
 #       unit_of_measurement: "%"
 #       value_template: "{{ value_json.humidity }}"
+
+
+#  старая не работающая интеграция 
+# sensor:
+#   - platform: systemmonitor
+#     resources:
+#       - type: processor_use
+#       - type: load_5m
+#       - type: memory_use_percent
+#       - type: disk_use_percent
+#       - type: disk_use
+#       - type: disk_free
+#       - type: last_boot
+
+# switch:
+#   - platform: mqtt
+#     name: "1 MQTT Switch"
+#     command_topic: "test1/test2"
+#     payload_on: "on"
+#     payload_off: "off"
+

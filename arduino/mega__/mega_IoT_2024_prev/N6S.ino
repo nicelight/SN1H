@@ -102,15 +102,21 @@ void handleN6S1() {
     if (N6_spots.rightNowOn) { //если свет включен после тьмы
       N6_spots.rightNowOn = 0;
     } //
-//    // СЦЕНА ВЫХОД выходим из комнаты с включенным светом,
-//    else {
-//      N6_spots.state = 0;
-//      update_N6_Lamps();
-//    Serial.print("\n\n\t\t N6 HOLDED for shutdown \n\n");// TODO отправка режима ночь !!!
-//    }
+    //    // СЦЕНА ВЫХОД выходим из комнаты с включенным светом,
+    //    else {
+    //      N6_spots.state = 0;
+    //      update_N6_Lamps();
+    //    Serial.print("\n\n\t\t N6 HOLDED for shutdown \n\n");// TODO отправка режима ночь !!!
+    //    }
     // вытяжка
-    if (!fanN6state) fanN6state = 1; // если вытяжка выключена, включим ее
-    else fanN6state = 6; // иначе выключаем вытяжку
+    if (!fanN6state) {
+      fanN6state = 1; // если вытяжка выключена, включим ее
+      ha[N6_FAN] = 1;
+    }
+    else {
+      fanN6state = 6; // иначе выключаем вытяжку
+      ha[N6_FAN] = 0;
+    }
   }
 
   if (N6_S1_but.hasClicks())
@@ -125,9 +131,36 @@ void handleN6S1() {
   //    value++;                                            // увеличивать/уменьшать переменную value с шагом и интервалом
   //    Serial.println(value);                              // для примера выведем в порт
   //  }
-
+  update_N6_modbus();
 }//handleN6S1()
 
+
+// обработка ВХОДЯЩИХ по modbus
+void update_N6_modbus() {
+  //свет
+  if ((N6_spots.state == 0) && (ha[N6_LIGHTS] == 1)) { //свет потушен а с ha пришло - включить
+    N6_spots.state = 1;
+    update_N6_Lamps();
+  }
+  else if ((N6_spots.state == 1) && (ha[N6_LIGHTS] == 0)) { //включенный свет надо потушить
+    N6_spots.state = 0;
+    update_N6_Lamps();
+  }
+
+  // вытяжка
+  if ((ha[N6_FAN] == 1) && !fanN6state) { // если ha команда включить и вытяжка выключена, включим
+    fanN6state = 1;
+    fanN6();
+  }
+  else if ((ha[N6_FAN] == 0) && fanN6state) {
+    fanN6state = 6; // иначе выключаем вытяжку
+    ha[N6_FAN] = 0;
+    fanN6();
+  }
+}// update_N6_modbus()
+
+
+//обновление физ состояний ламп
 void update_N6_Lamps() {
   if (N6_spots.state) {
 
@@ -136,23 +169,26 @@ void update_N6_Lamps() {
     //#define N6_SP 10
     //#define N6_LED 11
 
+    ha[N6_LIGHTS] = 1;
     digitalWrite(N6_SP, N6_spots.lamp1);
     digitalWrite(N6_LED, N6_spots.lamp2);
   }
   else
   {
+    ha[N6_LIGHTS] = 0;
     digitalWrite(N6_SP, OFF);
     digitalWrite(N6_LED, OFF);
   }
 }//update_N6_Lamps()
 
+
 void fanN6() {
   switch (fanN6state) {
     case 0:
-      each10minFanN6.rst();
       break;
     // запуск на 10 минут
     case 1:
+      each10minFanN6.rst();
       digitalWrite(N6_FAN, ON);
       fanN6state = 2;
       break;
@@ -171,29 +207,47 @@ void fanN6() {
   }
 }//fanN6()
 
+
+// автоматическая подсветка от PIR
 void pirN6() {
+  static byte pirN6state = 0; // автомат отработки
   statePIR6 = digitalRead(N6_SENS_PIR);
   if (each100msPirN6.ready()) { // каждых 100 мс
-    if (statePIR6 && !N6_spots.state) { // сработал датчик и свет не горел
-      digitalWrite(N6_LED, ON);
-      if (!startPirLightN6) {
-        startPirLightN6 = 1;
-        //        each5secForN6.rst();
-      }
+    if (statePIR6 && !N6_spots.state) { // (сработал датчик и свет не горел) или (ha)
+      pirN6state = 1; // запуск автомата с 10 минутным таймером
     }
-    //    Serial.print("\n\t");
-    //    Serial.print(millis() >> 10); // сколько ~секунд прошло
-    //    Serial.print("\t\t\t\t pir 7 = ");
-    //    Serial.println(statePIR7);
 
-    // прошло время служения PIR N6 и состояния света от кнопки по прежнему выключенные
-    // потушим принудительно
-    if (each5MinForN6.ready()) {
-      if (!N6_spots.state && startPirLightN6) { // вышел таймаут служения светом от сенсора и за это время не произошло включения с кнопки
+    switch (pirN6state) {
+      // ожидание
+      case 0:
+        break;
+      // запуск на 10 минут
+      case 1:
+        each5MinForN6.rst();
+        digitalWrite(N6_LED, ON);
+        pirN6state = 2;
+        break;
+      //ожидаем когда время пройдет
+      case 2:
+        if (each10minFanN6.ready()) {
+          pirN6state = 4;
+        }
+        break;
+      case 4:
+        // прошло время служения PIR
+        if (each5MinForN6.ready()) {
+          if (!N6_spots.state) { // за это время не произошло включения с кнопки
+            digitalWrite(N6_LED, OFF);
+          }
+          pirN6state = 0;
+        }
+        break;
+      // выключаем, уходим на ожидание
+      case 6:
+        delay(400);
         digitalWrite(N6_LED, OFF);
-      }
-      startPirLightN6 = 0;
-    }
-
+        pirN6state = 0;
+        break;
+    }//switch(pirN6state)
   }// each 100 ms
 }//pirN6()
