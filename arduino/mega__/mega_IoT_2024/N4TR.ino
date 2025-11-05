@@ -89,23 +89,29 @@ void handleN4TR() {
       N4_tracks.state = 1;
       N4_spots.state = 1;
       N4_museums.state = 1;
+      N4_kitchen.state = 1;
+      N4_kitchen.lamp1 = ON;
       update_N4_Tracks();
       delay(50);
       update_N4_Lamps();
       delay(50);
       update_N4_museums();
+      delay(50);
+      update_N4_kitchen();
     } else {
       //      тушим весь свет и отправляем режим ночь
       N4_spots.state = 0;
       N4_museums.state = 0;
       N4_kitchen.state = 0;
+      N4_kitchen.lamp1 = OFF;
       N4_tracks.state = 0;
       update_N4_museums();
       delay(50);
       update_N4_Lamps();
       delay(50);
       update_N4_Tracks();
-      //    update_N4_kitchen(); // раскоментить как допишется кухня
+      delay(50);
+      update_N4_kitchen();
       Serial.print("\n\n\t\tN4 track  NIGHT MODE ON\n\n");// TODO отправка режима ночь !!!
       update_N4_Tracks();
     }

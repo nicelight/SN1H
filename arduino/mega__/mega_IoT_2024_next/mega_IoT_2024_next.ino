@@ -77,7 +77,8 @@
 #define N5_LIGHTS 35 
 #define N6_LIGHTS 36 
 //#define N6_FAN 7 // уже определена
-#define RECUPERATOR 14 // реле включение рекуператора на максимум 
+// !! НАЙТИ пин рекуператора 
+#define RECUPERATOR 99 // реле включение рекуператора на максимум 
 #define N7_LIGHTS 37
 
 
@@ -155,8 +156,8 @@ GButton N3_S1_but(N3_SENS1);
 
 GButton N4_S_TRACK_but(N4_SENS_TRACK);
 GButton N4_S1_but(N4_SENS_PLANSHET);
-GButton N4_S_KITCHEN_but(N4_SENS_KITCHEN);
 GButton N4_S_KITH_TRACK_but(N4_SENS_KITCHEN_TRACK);
+GButton N4_S_KITCHEN_but(N4_SENS_KITCHEN);
 GButton N4_S_MAMA_but(N4_SENS_MAMA);
 GButton N4_S_WINDOW_but(N4_SENS_WINDOW);
 
@@ -261,6 +262,8 @@ void updateAllLights() {
   delay(100);
   update_N4_Lamps();
   delay(100);
+  update_N4_kitchen();
+  delay(100);
   update_N4_Tracks();
   delay(100);
   update_N5_Lamps();
@@ -318,7 +321,7 @@ void setup() {
   N4_S_TRACK_but.setDebounce(20);
   N4_S1_but.setDebounce(20);
   N4_S_KITCHEN_but.setDebounce(20);
-  N4_S_KITH_TRACK_but.setDebounce(20);
+  N4_S_KITH_TRACK_but.setDebounce(40);
   N4_S_MAMA_but.setDebounce(20);
   N4_S_WINDOW_but.setDebounce(20);
   N5_S1_but.setDebounce(20);
@@ -411,6 +414,8 @@ void loop() {
   handleN2T();
   handleN3S();
   handleN4S1(); // кнопка 1 в комнате 4
+  handleN4K();
+  handleN4K2();
   pirN3();
   fanN3();
   handleN4TR();
@@ -424,17 +429,3 @@ void loop() {
 
   //  makeCOM(); // ручное управление пинами, не надо уже
 }//loop
-
-
-// пример вызова функции со структурой в аргументе
-//  logButtonPress(N4_spots);
-//// пример передачи в функцию переменной по адресу из структуры
-//void logButtonPress(const LampTriple &lamps)
-//{
-//  Serial.print(" L1: ");
-//  Serial.print(lamps.lamp1 ? "OFF" : "ON");
-//  Serial.print(",\t L2: ");
-//  Serial.print(lamps.lamp2 ? "OFF" : "ON");
-//  Serial.print(",\t Mode: ");
-//  Serial.println(lamps.mode);
-//}

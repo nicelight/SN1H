@@ -44,7 +44,6 @@
 
 #define N2_SP 39
 #define N2_LED 42
-//#define N2_TRACK 38 // старый на черных твердотелках, сейчас N5_SHELF
 #define N2_TRACK 26 // бело-оранжевый
 
 #define N3_SP 43
@@ -78,6 +77,7 @@
 #define N5_LIGHTS 35 
 #define N6_LIGHTS 36 
 //#define N6_FAN 7 // уже определена
+#define RECUPERATOR 14 // реле включение рекуператора на максимум 
 #define N7_LIGHTS 37
 
 
@@ -401,23 +401,11 @@ void loop() {
 //    Serial.println();
 //
 //  }
+  checkLoopTIme(10);   //если луп  дольше 10 милисек, печатаемся
+  builtinLed.setPeriod(3000, 1, 800, 800);
   modbus.poll();
 
-  //builtinLed.setPeriod(3000, 1, 800, 800);
   // опрос кнопок
-
-  // обновление энергонезависимой памяти
-  //  EE_N1_spots.tick();
-  //  EE_N2_spots.tick();
-  //  EE_N3_spots.tick();
-  //  EE_N4_spots.tick();
-  //  EE_N4_museums.tick();
-  //  EE_N4_kitchen.tick();
-  //  EE_N4_tracks.tick();
-  //  EE_N5_spots.tick();
-  //  EE_N6_spots.tick();
-  //  EE_N7_spots.tick();
-
   handleN1S1(); // обработчики бизнес логики кнопок
   handleN2S1();
   handleN2T();
@@ -432,12 +420,11 @@ void loop() {
   fanN6();
   handleN7S1();
   pirN7();
+  recuperation();
 
-  //  Modbus
-  checkLoopTIme(10);   //если луп  дольше 10 милисек, печатаемся
   //  makeCOM(); // ручное управление пинами, не надо уже
-  //  testPirs();
 }//loop
+
 
 // пример вызова функции со структурой в аргументе
 //  logButtonPress(N4_spots);

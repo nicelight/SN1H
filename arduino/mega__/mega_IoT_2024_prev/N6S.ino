@@ -91,7 +91,7 @@ void handleN6S1() {
     Serial.println("N6_S1 Double\n");
     EE_N6_spots.update();                    // стараемся не вызывать часто эти данные
     // EE_N2_spots.update();
-    // EE_N3_spots.update();
+    // EE_N6_spots.update();
   }
 
   // удержание. если флаг о включении возведен(т.е. он был выключен) включим весь свет в комнате,
@@ -102,12 +102,6 @@ void handleN6S1() {
     if (N6_spots.rightNowOn) { //если свет включен после тьмы
       N6_spots.rightNowOn = 0;
     } //
-    //    // СЦЕНА ВЫХОД выходим из комнаты с включенным светом,
-    //    else {
-    //      N6_spots.state = 0;
-    //      update_N6_Lamps();
-    //    Serial.print("\n\n\t\t N6 HOLDED for shutdown \n\n");// TODO отправка режима ночь !!!
-    //    }
     // вытяжка
     if (!fanN6state) {
       fanN6state = 1; // если вытяжка выключена, включим ее
@@ -182,19 +176,21 @@ void update_N6_Lamps() {
 }//update_N6_Lamps()
 
 
+static uint32_t fanN6ms;
+static uint32_t fanN6WorkTIme = 600000; // время работы вытяжки 10 мин
 void fanN6() {
   switch (fanN6state) {
     case 0:
       break;
     // запуск на 10 минут
     case 1:
-      each10minFanN6.rst();
+      fanN6ms = millis();
       digitalWrite(N6_FAN, ON);
       fanN6state = 2;
       break;
     //ожидаем когда время пройдет
     case 2:
-      if (each10minFanN6.ready()) {
+      if ((millis() - fanN6ms) > fanN6WorkTIme) {
         fanN6state = 6;
       }
       break;
@@ -202,6 +198,7 @@ void fanN6() {
     case 6:
       delay(400);
       digitalWrite(N6_FAN, OFF);
+      ha[N6_FAN] = 0;
       fanN6state = 0;
       break;
   }
@@ -210,7 +207,9 @@ void fanN6() {
 
 // автоматическая подсветка от PIR
 void pirN6() {
-  static byte pirN6state = 0; // автомат отработки
+  static byte pirN6state = 0;
+  static uint32_t pirN6ms;
+  static uint32_t pirN6WorkTIme = 600000;
   statePIR6 = digitalRead(N6_SENS_PIR);
   if (each100msPirN6.ready()) { // каждых 100 мс
     if (statePIR6 && !N6_spots.state) { // (сработал датчик и свет не горел) или (ha)
@@ -223,28 +222,23 @@ void pirN6() {
         break;
       // запуск на 10 минут
       case 1:
-        each5MinForN6.rst();
+        pirN6ms = millis();
         digitalWrite(N6_LED, ON);
-        pirN6state = 2;
-        break;
-      //ожидаем когда время пройдет
-      case 2:
-        if (each10minFanN6.ready()) {
-          pirN6state = 4;
-        }
+        pirN6state = 4;
         break;
       case 4:
         // прошло время служения PIR
-        if (each5MinForN6.ready()) {
+        if ((millis() - pirN6ms) > pirN6WorkTIme) {
           if (!N6_spots.state) { // за это время не произошло включения с кнопки
-            digitalWrite(N6_LED, OFF);
+            pirN6state = 6; // выключим свет
+          } else {
+            pirN6state = 0; // сброс, ожидание
           }
-          pirN6state = 0;
         }
         break;
       // выключаем, уходим на ожидание
       case 6:
-        delay(400);
+        delay(40);
         digitalWrite(N6_LED, OFF);
         pirN6state = 0;
         break;

@@ -94,13 +94,6 @@ void handleN3S() {
     if (N3_spots.rightNowOn) { //если свет включен после тьмы
       N3_spots.rightNowOn = 0;
     } //
-    //    // СЦЕНА ВЫХОД выходим из комнаты с включенным светом,
-    //    else {
-    //      N3_spots.state = 0;
-    //      update_N3_Lamps();
-    //    Serial.print("\n\n\t\t N3 HOLDED for shutdown \n\n");// TODO отправка режима ночь !!!
-    //    }
-    // вытяжка
     // вытяжка
     if (!fanN3state) {
       fanN3state = 1; // если вытяжка выключена, включим ее
@@ -145,59 +138,61 @@ void update_N3_Lamps() {
 
 
 // обработка ВХОДЯЩИХ по modbus
-//N3_LIGHTS 33 
-//N3_FAN 6 
+//N3_LIGHTS 33
+//N3_FAN 6
 void update_N3_modbus() {
   //свет
   //свет потушен а с ha пришло - включить
-  if ((N3_spots.state == 0) && (ha[N3_LIGHTS] == 1)) { 
+  if ((N3_spots.state == 0) && (ha[N3_LIGHTS] == 1)) {
     N3_spots.state = 1;
     update_N3_Lamps();
   }
   //включенный свет надо потушить
-  else if ((N3_spots.state == 1) && (ha[N3_LIGHTS] == 0)) { 
+  else if ((N3_spots.state == 1) && (ha[N3_LIGHTS] == 0)) {
     N3_spots.state = 0;
     update_N3_Lamps();
   }
 
   // вытяжка
   // если ha команда включить и вытяжка выключена, включим
-  if ((ha[N3_FAN] == 1) && !fanN3state) { 
+  if ((ha[N3_FAN] == 1) && !fanN3state) {
     fanN3state = 1;
     fanN3();
   }
   // иначе выключаем вытяжку
   else if ((ha[N3_FAN] == 0) && fanN3state) {
-    fanN3state = 6; 
+    fanN3state = 6;
     ha[N3_FAN] = 0;
     fanN3();
   }
 }// update_N3_modbus()
 
 
+static uint32_t fanN3ms;
+static uint32_t fanN3WorkTIme = 600000; // время работы вытяжки 10 мин
 void fanN3() {
   switch (fanN3state) {
     case 0:
       break;
     // запуск на 10 минут
     case 1:
-      each10minFanN3.rst();
+      fanN3ms = millis();
       digitalWrite(N3_FAN, ON);
       fanN3state = 2;
       break;
     //ожидаем когда время пройдет
     case 2:
-      if (each10minFanN3.ready()) {
+      if ((millis() - fanN3ms) > fanN3WorkTIme) {
         fanN3state = 6;
       }
       break;
     // выключаем, уходим на ожидание
     case 6:
-      delay(400);
+      delay(20);
       digitalWrite(N3_FAN, OFF);
+      ha[N3_FAN] = 0;
       fanN3state = 0;
       break;
-
   }
 }//fanN3()
 
@@ -205,6 +200,8 @@ void fanN3() {
 // автоматическая подсветка от PIR
 void pirN3() {
   static byte pirN3state = 0;
+  static uint32_t pirN3ms;
+  static uint32_t pirN3WorkTIme = 600000;
   statePIR6 = digitalRead(N3_SENS_PIR);
   if (each100msPirN3.ready()) { // каждых 100 мс
     if (statePIR6 && !N3_spots.state) { // (сработал датчик и свет не горел) или (ha)
@@ -217,28 +214,23 @@ void pirN3() {
         break;
       // запуск на 10 минут
       case 1:
-        each5MinForN3.rst();
+        pirN3ms = millis();
         digitalWrite(N3_LED, ON);
-        pirN3state = 2;
-        break;
-      //ожидаем когда время пройдет
-      case 2:
-        if (each10minFanN3.ready()) {
-          pirN3state = 4;
-        }
+        pirN3state = 4;
         break;
       case 4:
         // прошло время служения PIR
-        if (each5MinForN3.ready()) {
+        if ((millis() - pirN3ms) > pirN3WorkTIme) {
           if (!N3_spots.state) { // за это время не произошло включения с кнопки
-            digitalWrite(N3_LED, OFF);
+            pirN3state = 6; // выключим свет
+          } else {
+            pirN3state = 0; // сброс, ожидание
           }
-          pirN3state = 0;
         }
         break;
-      // выключаем, уходим на ожидание
+      // выключаем
       case 6:
-        delay(400);
+        delay(40);
         digitalWrite(N3_LED, OFF);
         pirN3state = 0;
         break;
