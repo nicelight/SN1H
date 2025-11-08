@@ -79,6 +79,41 @@
  └── frigate/{config,media,db}/
 ```
 
+## 8. Топология сети
+```mermaid 
+flowchart LR
+  %% Топология сети
+
+  U[Аплинк]
+
+  subgraph L[Левый узел]
+    TTL[TTL роутер]
+    SW[TP-Link свич]
+    RJ[PoE Ruijie свич]
+
+    subgraph PX[Сервер ProxMox]
+      SRV[Сервер]
+      HA[HA 10.141]
+    end
+  end
+
+  subgraph R[Правый узел]
+    KN[Роутер Keenetic]
+  end
+
+  CAM[Камера]
+
+  %% Связи
+  U --> TTL
+  TTL --- KN
+  KN --- SW
+  SW --- SRV
+  SW --- RJ
+  RJ --- CAM
+
+```
+
+
 ## 🚀 8. TODO / Planned
 | Задача | Статус |
 |--------|---------|
