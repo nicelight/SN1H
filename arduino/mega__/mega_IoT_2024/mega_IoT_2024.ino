@@ -1,4 +1,4 @@
-#define DEBUG
+
 
 //////////////////////////////////// сенсоры //////////////////////////////////
 #define N1_SENS1 A0 // первая кнопка у двери детской,дублируется у кровати
@@ -64,20 +64,20 @@
 //#define СИНИЙ 31
 
 // для modbus номера коилов эквивалентные N1_lamps.state
-#define N1_LIGHTS 31 
+#define N1_LIGHTS 31
 #define N2_LIGHTS 32
 #define N2_TRACK_LIGHTS 14
-#define N3_LIGHTS 33 
+#define N3_LIGHTS 33
 //#define N3_FAN 6 // уже определена
-#define N4_LIGHTS 34 
+#define N4_LIGHTS 34
 #define N4_TRACK_LIGHTS 15
 #define N4_KITCHEN_LIGHTS 16
 #define N4_MUSEUMS_LIGHTS 17
 #define N4_MEAL_LIGHTS 18
-#define N5_LIGHTS 35 
-#define N6_LIGHTS 36 
+#define N5_LIGHTS 35
+#define N6_LIGHTS 36
 //#define N6_FAN 7 // уже определена
-// !! НАЙТИ пин рекуператора 
+// !! НАЙТИ пин рекуператора
 #define RECUPERATOR 99 // реле включение рекуператора на максимум 
 #define N7_LIGHTS 37
 
@@ -156,9 +156,9 @@ GButton N3_S1_but(N3_SENS1);
 
 GButton N4_S_TRACK_but(N4_SENS_TRACK);
 GButton N4_S1_but(N4_SENS_PLANSHET);
+GButton N4_S2_but(N4_SENS_MAMA);
 GButton N4_S_KITH_TRACK_but(N4_SENS_KITCHEN_TRACK);
 GButton N4_S_KITCHEN_but(N4_SENS_KITCHEN);
-GButton N4_S_MAMA_but(N4_SENS_MAMA);
 GButton N4_S_WINDOW_but(N4_SENS_WINDOW);
 
 GButton N5_S1_but(N5_SENS1);
@@ -320,9 +320,9 @@ void setup() {
   N3_S1_but.setDebounce(20);
   N4_S_TRACK_but.setDebounce(20);
   N4_S1_but.setDebounce(20);
+  N4_S2_but.setDebounce(20);
   N4_S_KITCHEN_but.setDebounce(20);
   N4_S_KITH_TRACK_but.setDebounce(40);
-  N4_S_MAMA_but.setDebounce(20);
   N4_S_WINDOW_but.setDebounce(20);
   N5_S1_but.setDebounce(20);
   N6_S1_but.setDebounce(20);
@@ -383,27 +383,46 @@ void setup() {
 
 uint32_t prevcheckMs = 0;
 
+//проверка состояний пинов входов
+bool pinStates[70] = {0};
+
 void loop() {
-  
+
 //  if (millis() - prevcheckMs  > 500) {
 //    prevcheckMs = millis();
-//    Serial.println();
-//    Serial.print(millis() >> 10);
-//    Serial.print("\tha[0] = ");
-//    Serial.print(ha[0]);
-//    Serial.print("\tha[1] = ");
-//    Serial.print(ha[1]);
-//    Serial.print("\tha[2] = ");
-//    Serial.print(ha[2]);
-//    Serial.print("\tha[36] = ");
-//    Serial.print(ha[36]);
-//    Serial.print("\tha[37] = ");
-//    Serial.print(ha[37]);
-//    Serial.print("\tha[38] = ");
-//    Serial.print(ha[38]);
-//    Serial.println();
-//
-//  }
+//    // 32-37, 54-69 пины это входы
+//    for (int i = 32; i < 38; i++) {
+//      if (pinStates[i] != digitalRead(i)) {
+//        pinStates[i] = digitalRead(i);
+//        Serial.print("changed ");
+//        Serial.println(i);
+//      }
+//    }
+//    for (int i = 54; i < 70; i++) {
+//      if (pinStates[i] != digitalRead(i)) {
+//        pinStates[i] = digitalRead(i);
+//        Serial.print("\tchanged ");
+//        Serial.println(i);
+//      }
+//    }
+    //    Serial.println();
+    //    Serial.print(millis() >> 10);
+    //    Serial.print("\tha[0] = ");
+    //    Serial.print(ha[0]);
+    //    Serial.print("\tha[1] = ");
+    //    Serial.print(ha[1]);
+    //    Serial.print("\tha[2] = ");
+    //    Serial.print(ha[2]);
+    //    Serial.print("\tha[36] = ");
+    //    Serial.print(ha[36]);
+    //    Serial.print("\tha[37] = ");
+    //    Serial.print(ha[37]);
+    //    Serial.print("\tha[38] = ");
+    //    Serial.print(ha[38]);
+    //    Serial.println();
+    //
+//  }//if ms 500
+
   checkLoopTIme(10);   //если луп  дольше 10 милисек, печатаемся
   builtinLed.setPeriod(3000, 1, 800, 800);
   modbus.poll();
@@ -414,6 +433,7 @@ void loop() {
   handleN2T();
   handleN3S();
   handleN4S1(); // кнопка 1 в комнате 4
+  handleN4S2();
   handleN4K();
   handleN4K2();
   pirN3();

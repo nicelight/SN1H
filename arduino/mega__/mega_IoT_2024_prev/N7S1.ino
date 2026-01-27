@@ -87,12 +87,16 @@ void handleN7S1() {
       N4_tracks.state = 1;
       N4_spots.state = 1;
       N4_museums.state = 1;
+      N4_kitchen.state = 1;
+      N4_kitchen.lamp1 = ON;
       N7_spots.state = 1;
       update_N4_museums();
       delay(50);
       update_N4_Lamps();
       delay(50);
       update_N4_Tracks();
+      delay(50);
+      update_N4_kitchen();
       delay(50);
       update_N7_Lamps();
       Serial.print("\n\n\t\tN7_S_GATE_but Come home ON\n\n");// TODO отправка режима ночь !!!
@@ -107,6 +111,8 @@ void handleN7S1() {
       N4_spots.state = 0;
       N4_tracks.state = 0;
       N4_museums.state = 0;
+      N4_kitchen.state = 0;
+      N4_kitchen.lamp1 = OFF;
       N5_spots.state = 0;
       N6_spots.state = 0;
       N7_spots.state = 0;
@@ -123,6 +129,8 @@ void handleN7S1() {
       update_N4_Lamps();
       delay(50);
       update_N4_Tracks();
+      delay(50);
+      update_N4_kitchen();
       delay(50);
       update_N5_Lamps();
       delay(50);
