@@ -1,0 +1,8 @@
+id: policy.parsing
+labels:
+  fajr: "Субҳ"
+  dhuhr: "Қиём"
+  asr: "Аср"
+  maghrib: "Шом"
+  isha: "Хуфтан"
+aliases_allowed: false

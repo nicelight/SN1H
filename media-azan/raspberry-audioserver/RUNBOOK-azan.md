@@ -217,136 +217,6 @@ journalctl -u azan-jack -f
 
 ---
 
-### 13.2 HTTP-сервис USB (8081)
-
-Файл `/opt/azan/service/app_usb.py`
-
-```python
-from fastapi import FastAPI, HTTPException
-from pathlib import Path
-import subprocess, os, signal, threading
-
-AUDIO = Path("/opt/azan/audio/start.mp3")
-LOCK  = Path("/opt/azan/lock/azan.lock")
-PIDF  = Path("/opt/azan/lock/azan.pid")
-DEV   = "usb"
-
-app = FastAPI()
-
-def try_lock():
-    try:
-        fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        os.close(fd)
-        return True
-    except FileExistsError:
-        return False
-
-def unlock():
-    LOCK.unlink(missing_ok=True)
-    PIDF.unlink(missing_ok=True)
-
-def wait_and_unlock(p):
-    p.wait()
-    unlock()
-
-@app.get("/play")
-def play():
-    if not AUDIO.exists():
-        raise HTTPException(404, "file not found")
-    if not try_lock():
-        raise HTTPException(409, "busy")
-
-    p = subprocess.Popen([
-        "cvlc", "--intf", "dummy",
-        "--aout=alsa",
-        f"--alsa-audio-device={DEV}",
-        "--play-and-exit",
-        str(AUDIO)
-    ])
-    PIDF.write_text(str(p.pid))
-    threading.Thread(target=wait_and_unlock, args=(p,), daemon=True).start()
-    return {"ok": True, "started": True}
-
-@app.get("/stop")
-def stop():
-    if not PIDF.exists():
-        return {"ok": False, "msg": "nothing playing"}
-    pid = int(PIDF.read_text())
-    try:
-        os.kill(pid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
-    unlock()
-    return {"ok": True, "stopped": True}
-```
-
----
-
-### 13.3 HTTP-сервис Jack (8082)
-
-Файл `/opt/azan/service/app_jack.py`
-
-```python
-from fastapi import FastAPI, HTTPException
-from pathlib import Path
-import subprocess, os, signal, threading
-
-AUDIO = Path("/opt/azan/audio/start.mp3")
-LOCK  = Path("/opt/azan/lock/azan.lock")
-PIDF  = Path("/opt/azan/lock/azan.pid")
-DEV   = "hw:0,0"
-
-app = FastAPI()
-
-def try_lock():
-    try:
-        fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        os.close(fd)
-        return True
-    except FileExistsError:
-        return False
-
-def unlock():
-    LOCK.unlink(missing_ok=True)
-    PIDF.unlink(missing_ok=True)
-
-def wait_and_unlock(p):
-    p.wait()
-    unlock()
-
-@app.get("/play")
-def play():
-    if not AUDIO.exists():
-        raise HTTPException(404, "file not found")
-    if not try_lock():
-        raise HTTPException(409, "busy")
-
-    p = subprocess.Popen([
-        "cvlc", "--intf", "dummy",
-        "--aout=alsa",
-        f"--alsa-audio-device={DEV}",
-        "--play-and-exit",
-        str(AUDIO)
-    ])
-    PIDF.write_text(str(p.pid))
-    threading.Thread(target=wait_and_unlock, args=(p,), daemon=True).start()
-    return {"ok": True, "started": True}
-
-@app.get("/stop")
-def stop():
-    if not PIDF.exists():
-        return {"ok": False, "msg": "nothing playing"}
-    pid = int(PIDF.read_text())
-    try:
-        os.kill(pid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
-    unlock()
-    return {"ok": True, "stopped": True}
-```
-
----
-
 ### 13.4 systemd units
 
 **USB** `/etc/systemd/system/azan-usb.service`
@@ -399,7 +269,6 @@ http://192.168.10.15:8081/stop
 JACK:
 http://192.168.10.15:8082/play
 http://192.168.10.15:8082/stop
-```
 
 Ожидаемо:
 
@@ -410,6 +279,35 @@ http://192.168.10.15:8082/stop
 ## 13.6 GPIO / Реле (актуально)
 
 `raspi-gpio` отсутствует/устарел — используем **gpiozero**.
+GPIO17 далее используется в сервисе для включения усилителя.
+
+Проверка работает ли GPIO17:
+```bash
+python3 -c "from gpiozero import OutputDevice; r=OutputDevice(17, active_high=False); r.on(); input('ON, press Enter...')"
+```
+
+---
+
+### 13.7 HTTP-сервис Jack (8082)
+Запуск (включит реле, через 0.5 c стартанёт на громкости volFrom, затем поднимет до 100% за rise секунд):
+`curl "http://192.168.10.15:8082/play?file=start.mp3&rise=6&volFrom=25&volTo=80"`
+Остановка (сразу громкость 0, через 0.5 c выключит реле):
+`curl "http://192.168.10.15:8082/stop"`
+
+Файл `/opt/azan/service/app_jack.py`
+
+---
+
+### 13.8 HTTP-сервис USB (8081)
+Проверка звука
+curl "http://192.168.10.15:8081/play?file=start.mp3&rise=6&volFrom=25&volTo=80"
+
+Файл `/opt/azan/service/app_usb.py`
+
+
+---
+
+
 
 
 

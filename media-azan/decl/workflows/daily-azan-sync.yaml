@@ -1,0 +1,25 @@
+id: workflow.daily_sync
+steps:
+  - id: send_request
+    action: telegram.user.send
+    actor: userbot
+    transport: mtproto
+    message: "Имрӯз"
+    interval_seconds: 300
+    mode: "24x7-until-success"
+  - id: receive_message
+    on: event.tg_received
+    filter:
+      source_username: "vaktiNamozBot"
+    transport: mtproto
+  - id: parse_message
+    action: parse.azan
+    requires:
+      - policy.date_match
+      - policy.parsing
+  - id: publish_mqtt
+    action: mqtt.publish
+    requires:
+      - policy.mqtt
+  - id: update_cache
+    action: cache.write

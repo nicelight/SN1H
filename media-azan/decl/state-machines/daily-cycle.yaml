@@ -1,0 +1,14 @@
+id: sm.daily_cycle
+timezone: "+05:00"
+day_start_time: "02:00"
+states:
+  - name: idle
+  - name: requesting
+  - name: awaiting_message
+  - name: published
+transitions:
+  - {from: idle, to: requesting, on: day_start}
+  - {from: requesting, to: awaiting_message, on: send_request}
+  - {from: awaiting_message, to: published, on: parse_success}
+  - {from: awaiting_message, to: requesting, on: parse_fail}
+  - {from: published, to: idle, on: day_rollover}

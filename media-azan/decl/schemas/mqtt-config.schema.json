@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schema.mqtt_config",
+  "title": "MqttConfig",
+  "type": "object",
+  "required": ["host", "port"],
+  "properties": {
+    "host": { "type": "string", "const": "192.168.10.141" },
+    "port": { "type": "integer", "const": 1883 },
+    "username_env": { "type": "string", "description": "Имя env-переменной для username" },
+    "password_env": { "type": "string", "description": "Имя env-переменной для пароля" },
+    "tls": { "type": "boolean", "default": false }
+  },
+  "additionalProperties": false
+}

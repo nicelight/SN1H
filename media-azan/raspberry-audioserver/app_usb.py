@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess, os, signal, threading, time
 
 from gpiozero import OutputDevice
+from gpiozero.exc import GPIOPinInUse
 
 AUDIO_DIR = Path("/opt/azan/audio")
 LOCK  = Path("/opt/azan/lock/azan.lock")
@@ -30,19 +31,79 @@ RAMP_TICK_SEC = 0.10  # 100 ms
 
 app = FastAPI()
 
-relay = OutputDevice(RELAY_GPIO, active_high=RELAY_ACTIVE_HIGH, initial_value=False)
-
 _state_lock = threading.Lock()
 _current_proc: subprocess.Popen | None = None
 _stop_event = threading.Event()
+STALE_LOCK_SEC = 10  # auto-clear lock if older and process is dead
+_relay: OutputDevice | None = None
 
 
-def try_lock() -> bool:
+class _DummyRelay:
+    """Fallback when GPIO17 уже занят другим процессом: no-op on/off/close."""
+
+    closed = False
+
+    def on(self):  # noqa: D401
+        return None
+
+    def off(self):
+        return None
+
+    def close(self):
+        self.closed = True
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+
+
+def _clear_stale_lock() -> bool:
+    if not LOCK.exists():
+        return False
+    try:
+        age = time.time() - LOCK.stat().st_mtime
+    except FileNotFoundError:
+        return False
+
+    pid = None
+    if PIDF.exists():
+        try:
+            pid = int(PIDF.read_text().strip())
+        except (ValueError, OSError):
+            pid = None
+
+    if pid and _pid_alive(pid):
+        return False
+
+    if pid is None and age < 2:
+        return False
+
+    if age >= STALE_LOCK_SEC or pid is None or not _pid_alive(pid):
+        unlock()
+        return True
+
+    return False
+
+
+def _acquire_lock() -> bool:
     try:
         fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         os.close(fd)
         return True
     except FileExistsError:
+        if _clear_stale_lock():
+            try:
+                fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                os.close(fd)
+                return True
+            except FileExistsError:
+                return False
         return False
 
 
@@ -55,12 +116,31 @@ def _clamp(p: int) -> int:
     return max(0, min(100, int(p)))
 
 
+def _ensure_relay() -> OutputDevice:
+    global _relay
+    if _relay is None or _relay.closed:
+        try:
+            _relay = OutputDevice(RELAY_GPIO, active_high=RELAY_ACTIVE_HIGH, initial_value=False)
+        except GPIOPinInUse:
+            # Другой сервис держит пин (например, azan-jack) — работаем без управления реле.
+            _relay = _DummyRelay()
+    return _relay
+
+
+def _close_relay():
+    global _relay
+    if _relay is not None and not _relay.closed:
+        _relay.close()
+    _relay = None
+
+
 def _speakers_on():
-    relay.on()
+    _ensure_relay().on()
 
 
 def _speakers_off():
-    relay.off()
+    if _relay:
+        _relay.off()
 
 
 def _amixer_set(pct: int):
@@ -119,6 +199,7 @@ def _end_cleanup(proc: subprocess.Popen, use_amixer: bool):
         _amixer_set(0)
     time.sleep(SPEAKER_DELAY_SEC)
     _speakers_off()
+    _close_relay()
 
     with _state_lock:
         global _current_proc
@@ -138,45 +219,55 @@ def play(
     if not audio.exists() or audio.parent != AUDIO_DIR:
         raise HTTPException(404, "file not found")
 
-    if not try_lock():
+    if not _acquire_lock():
         raise HTTPException(409, "busy")
 
-    with _state_lock:
-        global _current_proc
-        _stop_event.clear()
+    try:
+        with _state_lock:
+            global _current_proc
+            _stop_event.clear()
 
-        v_from = _clamp(volFrom)
-        v_to = _clamp(volTo)
-        if v_to < v_from:
-            v_from, v_to = v_to, v_from
+            v_from = _clamp(volFrom)
+            v_to = _clamp(volTo)
+            if v_to < v_from:
+                v_from, v_to = v_to, v_from
 
-        _speakers_on()
-        time.sleep(SPEAKER_DELAY_SEC)
+            _speakers_on()
+            time.sleep(SPEAKER_DELAY_SEC)
 
-        use_amixer = USE_AMIXER
-        if use_amixer:
-            # set start volume before playback
-            _amixer_set(v_from)
+            use_amixer = USE_AMIXER
+            if use_amixer:
+                # set start volume before playback
+                _amixer_set(v_from)
 
-        p = subprocess.Popen([
-            "cvlc", "--intf", "dummy",
-            "--aout=alsa",
-            f"--alsa-audio-device={DEV}",
-            "--play-and-exit",
-            str(audio)
-        ])
-        _current_proc = p
-        PIDF.write_text(str(p.pid))
+            p = subprocess.Popen([
+                "cvlc", "--intf", "dummy",
+                "--aout=alsa",
+                f"--alsa-audio-device={DEV}",
+                "--play-and-exit",
+                str(audio)
+            ])
+            _current_proc = p
+            PIDF.write_text(str(p.pid))
 
-        if use_amixer:
-            threading.Thread(target=_ramp_amixer, args=(rise, p, v_from, v_to), daemon=True).start()
-        else:
-            # no mixer: best-effort behavior (no smooth ramp)
-            threading.Thread(target=_ramp_vlc_gain, args=(rise, p, v_from, v_to), daemon=True).start()
+            if use_amixer:
+                threading.Thread(target=_ramp_amixer, args=(rise, p, v_from, v_to), daemon=True).start()
+            else:
+                # no mixer: best-effort behavior (no smooth ramp)
+                threading.Thread(target=_ramp_vlc_gain, args=(rise, p, v_from, v_to), daemon=True).start()
 
-        threading.Thread(target=_end_cleanup, args=(p, use_amixer), daemon=True).start()
+            threading.Thread(target=_end_cleanup, args=(p, use_amixer), daemon=True).start()
 
-    return {"ok": True, "file": file, "rise": rise, "volFrom": v_from, "volTo": v_to, "amixer": use_amixer}
+        return {"ok": True, "file": file, "rise": rise, "volFrom": v_from, "volTo": v_to, "amixer": use_amixer}
+    except Exception:
+        # make sure we do not leave lock or GPIO held on errors
+        with _state_lock:
+            _current_proc = None
+            _stop_event.clear()
+            unlock()
+        _speakers_off()
+        _close_relay()
+        raise
 
 
 @app.get("/stop")
@@ -198,6 +289,7 @@ def stop():
 
     time.sleep(SPEAKER_DELAY_SEC)
     _speakers_off()
+    _close_relay()
 
     with _state_lock:
         _current_proc = None

@@ -1,0 +1,7 @@
+id: policy.date_match
+source_date_format: "DD.MM.YYYY"
+source_date_position: "line1[0..9]"
+timezone: "+05:00"
+day_start_time: "02:00"
+comparison_basis: "message_text_date"
+ignore_received_time: true

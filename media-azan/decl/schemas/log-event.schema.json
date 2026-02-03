@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schema.log_event",
+  "title": "LogEvent",
+  "type": "object",
+  "required": ["level", "time", "component", "event"],
+  "properties": {
+    "level": { "type": "string", "enum": ["debug", "info", "warn", "error"] },
+    "time": { "type": "string", "format": "date-time" },
+    "component": { "type": "string" },
+    "event": { "type": "string" },
+    "details": { "type": "string" }
+  },
+  "additionalProperties": false
+}

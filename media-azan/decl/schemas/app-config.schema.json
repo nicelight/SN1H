@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schema.app_config",
+  "title": "AppConfig",
+  "type": "object",
+  "required": [
+    "mqtt",
+    "telegram_chat_id",
+    "source_username",
+    "telegram_user_api_id",
+    "telegram_user_api_hash",
+    "telegram_user_session",
+    "timezone",
+    "day_start_time",
+    "request_interval_seconds",
+    "log_dir",
+    "log_max_bytes"
+  ],
+  "properties": {
+    "mqtt": { "$ref": "schema.mqtt_config" },
+    "telegram_chat_id": { "type": "integer" },
+    "source_username": { "type": "string", "minLength": 1, "default": "vaktiNamozBot" },
+    "telegram_user_api_id": { "type": "integer" },
+    "telegram_user_api_hash": { "type": "string", "minLength": 1 },
+    "telegram_user_session": { "type": "string", "minLength": 1, "default": "azan_user" },
+    "telegram_user_phone": { "type": ["string", "null"] },
+    "timezone": { "type": "string", "pattern": "^[+-]\\d{2}:\\d{2}$", "default": "+05:00" },
+    "day_start_time": { "type": "string", "pattern": "^\\d{2}:\\d{2}$", "default": "02:00" },
+    "request_interval_seconds": { "type": "integer", "minimum": 1, "default": 300 },
+    "log_dir": { "type": "string" },
+    "log_max_bytes": { "type": "integer", "minimum": 1, "default": 524288 }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schema.telegram_message",
+  "title": "TelegramMessage",
+  "type": "object",
+  "required": ["message_id", "date", "text", "from"],
+  "properties": {
+    "message_id": { "type": "integer" },
+    "date": { "type": "string", "format": "date-time" },
+    "text": { "type": "string" },
+    "from": {
+      "type": "object",
+      "required": ["id", "username"],
+      "properties": {
+        "id": { "type": "integer" },
+        "username": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

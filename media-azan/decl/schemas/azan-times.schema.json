@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schema.azan_times",
+  "title": "AzanTimes",
+  "type": "object",
+  "required": ["fajr", "dhuhr", "asr", "maghrib", "isha"],
+  "properties": {
+    "fajr": { "type": "string", "format": "time" },
+    "dhuhr": { "type": "string", "format": "time" },
+    "asr": { "type": "string", "format": "time" },
+    "maghrib": { "type": "string", "format": "time" },
+    "isha": { "type": "string", "format": "time" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,4 @@
+id: event.azan_parsed
+title: AzanParsed
+payload:
+  $ref: "schema.azan_times"

@@ -1,0 +1,10 @@
+id: policy.mqtt
+broker:
+  $ref: "schema.mqtt_config"
+qos: 1
+retain: true
+reconnect:
+  backoff: true
+idempotency:
+  strategy: cache-compare
+republish_on_reconnect: false

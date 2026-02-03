@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schema.mqtt_publish",
+  "title": "MqttPublish",
+  "type": "object",
+  "required": ["topic", "payload"],
+  "properties": {
+    "topic": {
+      "type": "string",
+      "enum": [
+        "azan/today/fajr",
+        "azan/today/dhuhr",
+        "azan/today/asr",
+        "azan/today/maghrib",
+        "azan/today/isha"
+      ]
+    },
+    "payload": { "$ref": "schema.azan_payload" }
+  },
+  "additionalProperties": false
+}

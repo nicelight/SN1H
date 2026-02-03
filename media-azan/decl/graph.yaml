@@ -1,0 +1,166 @@
+nodes:
+  - id: doc.brief
+    type: doc
+    file: .memory/BRIEF.md
+    provides: [context]
+    depends_on: []
+  - id: doc.prd
+    type: doc
+    file: .memory/PRD.md
+    provides: [requirements]
+    depends_on: [doc.brief]
+  - id: doc.spec
+    type: doc
+    file: .memory/SPEC.md
+    provides: [spec]
+    depends_on: [doc.prd]
+  - id: doc.arch
+    type: doc
+    file: .memory/ARCHITECTURE.md
+    provides: [architecture]
+    depends_on: [doc.spec]
+  - id: doc.decisions
+    type: doc
+    file: .memory/DECISIONS.md
+    provides: [decisions]
+    depends_on: [doc.spec]
+  - id: doc.tasks
+    type: doc
+    file: .memory/TASKS.md
+    provides: [tasks]
+    depends_on: [doc.spec]
+  - id: doc.runbook
+    type: doc
+    file: .memory/RUNBOOK.md
+    provides: [operations]
+    depends_on: [doc.arch]
+  - id: doc.glossary
+    type: doc
+    file: .memory/GLOSSARY.md
+    provides: [glossary]
+    depends_on: []
+
+  - id: schema.azan_times
+    type: schemas
+    file: decl/schemas/azan-times.schema.json
+    provides: [AzanTimes]
+    depends_on: []
+  - id: schema.cache
+    type: schemas
+    file: decl/schemas/cache-today.schema.json
+    provides: [TodayCache]
+    depends_on: [schema.azan_times]
+  - id: schema.tg_message
+    type: schemas
+    file: decl/schemas/telegram-message.schema.json
+    provides: [TelegramMessage]
+    depends_on: []
+  - id: schema.azan_payload
+    type: schemas
+    file: decl/schemas/azan-payload.schema.json
+    provides: [AzanPayload]
+    depends_on: []
+  - id: schema.mqtt_config
+    type: schemas
+    file: decl/schemas/mqtt-config.schema.json
+    provides: [MqttConfig]
+    depends_on: []
+  - id: schema.mqtt_publish
+    type: schemas
+    file: decl/schemas/mqtt-publish.schema.json
+    provides: [MqttPublish]
+    depends_on: [schema.azan_payload]
+  - id: schema.app_config
+    type: schemas
+    file: decl/schemas/app-config.schema.json
+    provides: [AppConfig]
+    depends_on: [schema.mqtt_config]
+  - id: schema.log_event
+    type: schemas
+    file: decl/schemas/log-event.schema.json
+    provides: [LogEvent]
+    depends_on: []
+
+  - id: event.tg_received
+    type: events
+    file: decl/events/telegram.message.received.yaml
+    provides: [TelegramMessageReceived]
+    depends_on: [schema.tg_message]
+  - id: event.azan_parsed
+    type: events
+    file: decl/events/azan.parsed.yaml
+    provides: [AzanParsed]
+    depends_on: [schema.azan_times]
+  - id: event.mqtt_published
+    type: events
+    file: decl/events/mqtt.published.yaml
+    provides: [MqttPublished]
+    depends_on: [schema.mqtt_publish]
+
+  - id: policy.mqtt
+    type: policies
+    file: decl/policies/mqtt-publication.yaml
+    provides: [MqttPolicy]
+    depends_on: [schema.mqtt_config]
+  - id: policy.date_match
+    type: policies
+    file: decl/policies/date-matching.yaml
+    provides: [DateMatchingPolicy]
+    depends_on: []
+  - id: policy.parsing
+    type: policies
+    file: decl/policies/parsing-labels.yaml
+    provides: [ParsingLabelsPolicy]
+    depends_on: []
+
+  - id: workflow.daily_sync
+    type: workflows
+    file: decl/workflows/daily-azan-sync.yaml
+    provides: [DailyAzanSync]
+    depends_on: [event.tg_received, event.azan_parsed, event.mqtt_published, policy.mqtt, policy.date_match, policy.parsing, schema.cache]
+  - id: sm.daily_cycle
+    type: state-machines
+    file: decl/state-machines/daily-cycle.yaml
+    provides: [DailyCycle]
+    depends_on: [workflow.daily_sync]
+
+edges:
+  - from: doc.prd
+    to: doc.spec
+    relation: derives
+  - from: doc.spec
+    to: doc.arch
+    relation: informs
+  - from: doc.spec
+    to: schema.azan_times
+    relation: specifies
+  - from: doc.spec
+    to: schema.mqtt_publish
+    relation: specifies
+  - from: doc.spec
+    to: schema.app_config
+    relation: specifies
+  - from: doc.spec
+    to: schema.log_event
+    relation: specifies
+  - from: doc.spec
+    to: workflow.daily_sync
+    relation: specifies
+  - from: workflow.daily_sync
+    to: policy.mqtt
+    relation: enforces
+  - from: workflow.daily_sync
+    to: policy.date_match
+    relation: enforces
+  - from: workflow.daily_sync
+    to: policy.parsing
+    relation: enforces
+  - from: workflow.daily_sync
+    to: schema.cache
+    relation: uses
+  - from: policy.mqtt
+    to: schema.mqtt_config
+    relation: uses
+  - from: sm.daily_cycle
+    to: workflow.daily_sync
+    relation: orchestrates

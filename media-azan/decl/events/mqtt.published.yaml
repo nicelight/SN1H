@@ -1,0 +1,4 @@
+id: event.mqtt_published
+title: MqttPublished
+payload:
+  $ref: "schema.mqtt_publish"

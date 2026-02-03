@@ -1,0 +1,4 @@
+id: event.tg_received
+title: TelegramMessageReceived
+payload:
+  $ref: "schema.telegram_message"

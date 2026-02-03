@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schema.cache_today",
+  "title": "TodayCache",
+  "type": "object",
+  "required": ["date", "times"],
+  "properties": {
+    "date": { "type": "string", "format": "date" },
+    "times": { "$ref": "schema.azan_times" }
+  },
+  "additionalProperties": false
+}
